@@ -1,7 +1,11 @@
-"""Prüft, ob das Sprachmodell unter Metal brauchbare Audio-Codes liefert.
+"""Prüft, ob das Sprachmodell unter Metal brauchbar rechnet.
 
-Auf dem Apple M4 liefert acestep.cpp b7ba6d9 unter Metal 0 Codes oder Wiederholungs-Müll,
-auf anderen Chips kann es funktionieren. Aufruf: python metal_selftest.py <port>
+Beide Phasen werden getestet: Phase 1 plant Tempo, Tonart und Takt (deshalb geben wir sie
+nicht vor), Phase 2 erzeugt die Audio-Codes. Auf dem Apple M4 scheitert mit acestep.cpp b7ba6d9
+das 1.7B-Modell unter Metal an beidem (Phase 1 läuft ins Token-Limit, danach 0 Codes),
+das 0.6B-Modell dagegen funktioniert.
+
+Aufruf: python metal_selftest.py <port> [lm_datei]
 Exit 0 = Metal ok (ein Server reicht), Exit 1 = Sprachmodell muss auf die CPU.
 """
 import sys
@@ -17,9 +21,6 @@ req = {
     "caption": "calm ambient pad, soft piano",
     "lyrics": "[Instrumental]",
     "duration": DURATION,
-    "bpm": 90,
-    "keyscale": "C major",
-    "timesignature": "4",
     "vocal_language": "unknown",
     "seed": 42,
 }
@@ -50,6 +51,13 @@ data = result[0] if isinstance(result, list) else result
 codes = [x for x in str(data.get("audio_codes", "")).split(",") if x.strip()]
 expected = DURATION * 5
 unique_ratio = len(set(codes)) / len(codes) if codes else 0
-ok = 0.6 * expected <= len(codes) <= 1.4 * expected and unique_ratio > 0.3
-print(f"Selbsttest: {len(codes)} Codes (erwartet ~{expected}), Vielfalt {unique_ratio:.2f} -> {'ok' if ok else 'unbrauchbar'}")
+try:
+    bpm = float(data.get("bpm") or 0)
+except (TypeError, ValueError):
+    bpm = 0
+planned = 40 <= bpm <= 220 and bool(data.get("keyscale"))           # Phase 1
+coded = 0.6 * expected <= len(codes) <= 1.4 * expected and unique_ratio > 0.3   # Phase 2
+ok = planned and coded
+print(f"Selbsttest: Planung {'ok' if planned else 'fehlerhaft'} (BPM {data.get('bpm')}, {data.get('keyscale') or 'keine Tonart'}), "
+      f"{len(codes)} Codes (erwartet ~{expected}), Vielfalt {unique_ratio:.2f} -> {'ok' if ok else 'unbrauchbar'}")
 sys.exit(0 if ok else 1)
