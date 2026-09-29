@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Music Generator</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="glow" aria-hidden="true"></div>
+
+<div class="wrap">
+  <header class="top">
+    <div id="dropzone" class="logo-wrap" tabindex="0" role="button"
+         aria-label="Song hochladen und analysieren"
+         title="Song hierher ziehen oder klicken — Stil und Tempo werden übernommen">
+      <input id="fileInput" type="file" accept="audio/*,.wav,.mp3,.flac,.m4a,.ogg" hidden>
+      <svg class="logo" viewBox="0 0 84 84" aria-hidden="true">
+      <defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#434445"/><stop offset="1" stop-color="#2b2c2c"/></linearGradient></defs>
+      <rect x="1" y="1" width="82" height="82" rx="14" fill="url(#lg)" stroke="#2a2e38"/>
+      <g fill="#ddc8aa">
+        <rect x="16" y="36" width="5" height="12" rx="2.5"/><rect x="25" y="28" width="5" height="28" rx="2.5"/>
+        <rect x="34" y="20" width="5" height="44" rx="2.5"/><rect x="43" y="30" width="5" height="24" rx="2.5"/>
+        <rect x="52" y="24" width="5" height="36" rx="2.5"/><rect x="61" y="34" width="5" height="16" rx="2.5"/>
+      </g>
+      </svg>
+      <div id="dzBubble" class="dz-bubble" role="status" aria-live="polite"></div>
+    </div>
+    <img class="brand" src="/static/alphatester.png" alt="Alphatester">
+    <div class="divider"></div>
+    <h1 class="title"><span>MUSIC</span><span>GENERATOR</span></h1>
+    <div class="top-right">
+      <div id="status" class="box small" title="Modellserver">…</div>
+      <button id="btnSettings" class="gear" title="Setup" aria-label="Setup">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <section class="card">
+    <form id="genForm">
+      <div class="field"><div class="lblrow"><span class="lbl" title="Nur zum Wiederfinden, hat keinen Einfluss auf die Musik.">Titel</span>
+        <button type="button" id="titleDice" class="dice" title="Zufälligen Titel würfeln" aria-label="Zufälligen Titel würfeln"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor"/></svg></button></div>
+        <input name="title" placeholder="optional">
+      </div>
+
+      <div class="field"><div class="lblrow"><span class="lbl" title="Deine Idee für den Song: Stimmung, Szene, Klang. Wird zusammen mit dem Stil ans Modell geschickt.">Prompt</span>
+        <button type="button" id="diceBtn" class="dice" title="Zufälligen Prompt würfeln" aria-label="Zufälligen Prompt würfeln">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor"/></svg>
+        </button></div>
+        <textarea name="prompt" rows="2" placeholder="nächtliche Autofahrt durch eine Neonstadt, langsam und hypnotisch"></textarea>
+      </div>
+
+      <div class="field"><span class="lbl" title="Stilrichtung: Genre, Instrumente, Sound. Die Chips hängen Begriffe an.">Stil</span>
+        <textarea name="style" rows="2" placeholder="trip hop, dark, dub bass"></textarea>
+      </div>
+      <div class="chips" id="tagChips"></div>
+
+      <!-- Feste Vorgaben, nicht mehr sichtbar: Instrumental (wird im Lyrics-Bereich gesteuert) und Prompt wörtlich -->
+      <input type="checkbox" name="instrumental" checked hidden>
+      <input type="checkbox" name="keep_caption" checked hidden>
+
+      <div class="field"><span class="lbl">Länge</span>
+        <div class="slider" data-fmt="dur">
+          <div class="fill"></div><div class="knob"><span></span></div>
+          <input name="duration" type="range" min="10" max="300" step="5" value="90" aria-label="Länge" title="0:10 bis 5:00">
+        </div>
+      </div>
+
+      <div class="field"><span class="lbl" title="Ganz links = Auto: Das Modell wählt das Tempo.">BPM</span>
+        <div class="slider" data-fmt="bpm">
+          <div class="fill"></div><div class="knob"><span></span></div>
+          <input name="bpm" type="range" min="50" max="200" step="1" value="50" aria-label="BPM">
+        </div>
+      </div>
+
+      <details id="lyricsBox" title="Leer lassen: Das Modell schreibt eigene Lyrics. Die Sprache der Vocals ergibt sich aus dem Text (Deutsch oder Englisch).">
+        <summary><span>Lyrics <span id="lyricsHint" class="sumhint"></span></span>
+          <button type="button" id="lyricsDice" class="dice" disabled title="Zufällige Lyrics vom Modell schreiben lassen (braucht einen Prompt)" aria-label="Zufällige Lyrics vom Modell schreiben lassen"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor"/></svg></button>
+        </summary>
+        <textarea name="lyrics" rows="7" placeholder="[verse]&#10;…&#10;&#10;[chorus]&#10;…"></textarea>
+        <div class="chips" id="sectionChips"></div>
+      </details>
+
+      <details>
+        <summary>Erweitert</summary>
+        <div class="field adv"><span class="lbl" title="Diffusionsschritte der Klangerzeugung. Mehr = langsamer, ab etwa 50 kaum noch hörbar besser (Modell-Vorgabe: 50).">Iterationen</span>
+          <div class="slider" data-fmt="int">
+            <div class="fill"></div><div class="knob"><span></span></div>
+            <input name="inference_steps" type="range" min="10" max="100" step="5" value="50" aria-label="Iterationen">
+          </div>
+        </div>
+        <div class="field adv"><span class="lbl" title="Wie mutig das Sprachmodell den Song plant. Niedriger = vorhersehbar, höher = abwechslungsreicher, zu hoch = zerfahren (Modell-Vorgabe: 0.85).">Varianz</span>
+          <div class="slider" data-fmt="temp">
+            <div class="fill"></div><div class="knob"><span></span></div>
+            <input name="lm_temperature" type="range" min="0.3" max="1.5" step="0.05" value="1" aria-label="Varianz">
+          </div>
+        </div>
+        <div class="grid">
+          <label class="field"><span class="lbl">Tonart</span>
+            <select name="keyscale">
+            <option value="">Auto</option>
+            <option value="C major">C major</option>
+            <option value="G major">G major</option>
+            <option value="D major">D major</option>
+            <option value="A major">A major</option>
+            <option value="E major">E major</option>
+            <option value="F major">F major</option>
+            <option value="A minor">A minor</option>
+            <option value="E minor">E minor</option>
+            <option value="D minor">D minor</option>
+            <option value="C minor">C minor</option>
+            </select>
+          </label>
+          <label class="field"><span class="lbl">Takt</span>
+            <select name="timesignature">
+            <option value="">Auto</option>
+            <option value="4">4/4 (Standard)</option>
+            <option value="3">3/4 (Walzer)</option>
+            <option value="6">6/8</option>
+            <option value="2">2/4 (Marsch)</option>
+            <option value="12">12/8</option>
+            <option value="5">5/4</option>
+            <option value="7">7/8</option>
+            <option value="9">9/8</option>
+            <option value="6">6/4</option>
+            <option value="2">2/2</option>
+            </select>
+          </label>
+          <label class="field"><span class="lbl" title="Gleicher Seed + gleiche Einstellungen = gleicher Song">Seed</span><input name="seed" type="number" placeholder="zufällig"></label>
+        </div>
+      </details>
+
+      <div class="field"><span class="lbl" title="Anzahl Varianten desselben Prompts, jede mit eigenem Seed">Varianten</span>
+        <div class="genrow">
+          <div class="slider" data-fmt="int">
+            <div class="fill"></div><div class="knob"><span></span></div>
+            <input name="variants" type="range" min="1" max="10" step="1" value="2" aria-label="Varianten">
+          </div>
+          <button type="submit" class="aktion big">GENERIEREN</button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="libhead">
+      <h2 class="col-title">Bibliothek</h2>
+      <input id="search" type="search" placeholder="Suchen">
+      <label class="check" title="Nur Favoriten zeigen"><input type="checkbox" id="onlyFav"> ★</label>
+    </div>
+    <div id="library"></div>
+  </section>
+</div>
+
+<footer id="player" hidden>
+  <div class="player-in">
+    <button id="playBtn" class="aktion round" aria-label="Abspielen">▶</button>
+    <div class="pmeta">
+      <div id="pTitle"></div>
+      <div id="waveform"></div>
+    </div>
+    <span id="pTime" class="time"></span>
+  </div>
+</footer>
+
+<dialog id="settingsDlg">
+  <form method="dialog" id="settingsForm">
+    <h2 class="col-title">Setup</h2>
+    <label class="field"><span class="lbl">Backend</span>
+      <select name="engine">
+        <option value="acestep_cpp">ACE-Step 1.5 (acestep.cpp)</option>
+        <option value="mock">Mock (Testton)</option>
+      </select>
+    </label>
+    <label class="field"><span class="lbl" title="DiT + VAE, auf Metal">Synthese-Server</span>
+      <input name="server_url" placeholder="http://127.0.0.1:8085">
+    </label>
+    <label class="field"><span class="lbl" title="Sprachmodell, auf CPU. Leer = gleicher Server wie Synthese.">Sprachmodell-Server</span>
+      <input name="lm_url" placeholder="http://127.0.0.1:8086">
+    </label>
+    <label class="field"><span class="lbl">Timeout (Min.)</span>
+      <input name="timeout_minutes" type="number" min="1" max="600">
+    </label>
+    <div id="healthOut" class="box small"></div>
+    <div class="submit">
+      <button type="button" id="testBtn" class="sek">Testen</button>
+      <button value="cancel" class="sek">Abbrechen</button>
+      <button value="save" id="saveBtn" class="aktion">SPEICHERN</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="/static/vendor/wavesurfer.min.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
