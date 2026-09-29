@@ -11,7 +11,7 @@ Ausführliche Anleitung mit Bildern: **[Installationsanleitung.pdf](Installation
 Voraussetzungen: Mac mit Apple Silicon (M1–M4), mindestens 8 GB Arbeitsspeicher, 7–11 GB frei.
 
 ```bash
-git clone <LINK-ZUM-PROJEKT> ~/MusicGenerator
+git clone https://github.com/agent-cue/music-generator.git ~/MusicGenerator
 open ~/MusicGenerator/Install.command
 ```
 
@@ -70,3 +70,8 @@ Nach einem Update von acestep.cpp (`ACESTEP_REV` in `scripts/common.sh`) testet 
 ACE-Step 1.5 steht unter Apache 2.0. Die Modelle werden beim Installieren von
 [Hugging Face](https://huggingface.co/Serveurperso/ACE-Step-1.5-GGUF) geladen und sind nicht Teil dieses Repositorys.
 Vor kommerzieller Nutzung die Lizenz- und Trainingsdaten-Lage selbst prüfen.
+
+## Lizenz
+
+Der Code in diesem Repository steht unter der [MIT-Lizenz](LICENSE).
+`static/vendor/wavesurfer.min.js` stammt von [wavesurfer.js](https://github.com/katspaugh/wavesurfer.js) (BSD-3-Clause).
