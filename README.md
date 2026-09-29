@@ -52,6 +52,7 @@ Songs und Einstellungen in `data/` bleiben erhalten.
 | `scripts/metal_selftest.py` | Grafikchip-Test des Installers |
 | `app/` | FastAPI-Backend: Queue, Bibliothek, Anbindung an ace-server |
 | `static/` | Oberfläche |
+| `docs/anleitung/` | Quelle der Installationsanleitung (`python3 build_pdf.py ../../Installationsanleitung.pdf`, braucht `reportlab`) |
 | `engine/` | acestep.cpp und Modelle (vom Installer, nicht im Repo) |
 | `data/` | Songs, Datenbank, Logs, `engine.conf` (nicht im Repo) |
 
