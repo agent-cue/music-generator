@@ -52,6 +52,9 @@ body {
 .logo-wrap.busy .dz-bubble { color: var(--accent2); border-color: var(--accent2); }
 .logo-wrap.ok .dz-bubble { color: var(--accent2); border-color: var(--accent2); }
 .logo-wrap.err .dz-bubble { color: var(--error); border-color: var(--error); }
+.brand-link { flex: none; display: block; border-radius: 10px; cursor: pointer; }
+.brand-link:hover .brand { filter: brightness(1.15); }
+.brand-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .brand { height: var(--h); width: auto; flex: none; border-radius: 10px; border: 1px solid var(--border); display: block; }
 .divider { width: 1px; align-self: stretch; background: var(--border); }
 .title { margin: 0; display: flex; flex-direction: column; justify-content: center; gap: 3px;
