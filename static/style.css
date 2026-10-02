@@ -115,7 +115,7 @@ select.mini { width: auto; padding: 3px 6px; font-size: 12px; text-transform: no
 @media (prefers-reduced-motion: reduce) { .dice.roll svg { animation: none; } }
 textarea.dim { opacity: .5; cursor: pointer; }
 details > textarea { margin-top: 10px; }
-details > .chips { margin-top: 8px; }
+details > .chips { margin: 10px 0 0; }
 .sumhint { margin-left: 8px; text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--muted); }
 .download.fmt { font-size: 11px; font-weight: 600; letter-spacing: .06em; padding: 4px 10px; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0 12px; margin-top: 12px; }

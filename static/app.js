@@ -12,9 +12,15 @@ const api = async (path, opts = {}) => {
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const fmt = (sec) => (isFinite(sec) ? `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}` : "");
 
-const STYLE_TAGS = ["trip hop", "downtempo", "dub", "deep house", "techno", "drum and bass", "post-rock", "neo-soul", "dark ambient", "boom bap", "orchestral",
-  "pop", "rock", "hip hop", "electronic", "lo-fi", "jazz", "ambient", "synthwave", "acoustic",
-  "cinematic", "female vocals", "male vocals", "piano", "guitar", "808 bass", "upbeat", "melancholic", "dreamy"];
+// Stil-Karten, nach Art gruppiert; der Würfel mischt daraus einen Stil
+const STYLE_GROUPS = {
+  genre: ["trip hop", "downtempo", "dub", "deep house", "techno", "drum and bass", "post-rock", "neo-soul", "dark ambient", "boom bap", "orchestral",
+    "pop", "rock", "hip hop", "electronic", "lo-fi", "jazz", "ambient", "synthwave", "acoustic", "cinematic"],
+  vocals: ["female vocals", "male vocals"],
+  instr: ["piano", "guitar", "808 bass"],
+  mood: ["upbeat", "melancholic", "dreamy"],
+};
+const STYLE_TAGS = [...STYLE_GROUPS.genre, ...STYLE_GROUPS.vocals, ...STYLE_GROUPS.instr, ...STYLE_GROUPS.mood];
 const SECTIONS = ["[intro]", "[verse]", "[pre-chorus]", "[chorus]", "[bridge]", "[outro]", "[instrumental]"];
 
 let songs = [];
@@ -82,11 +88,24 @@ const TITLE = {
   adj: ["Midnight", "Velvet", "Neon", "Silent", "Golden", "Hollow", "Electric", "Faded", "Distant", "Crimson", "Slow", "Lunar", "Paper", "Glass", "Amber"],
   noun: ["Static", "Horizon", "Rain", "Echoes", "Signal", "Drift", "Skyline", "Mirror", "Ember", "Tide", "Orbit", "Harbor", "Afterglow", "Motel", "Garden"],
 };
+// ein bis zwei Genres, ein Instrument, eine Stimmung; Gesang nur, wenn der Song nicht instrumental ist
+const randomStyle = () => {
+  const parts = [pick(STYLE_GROUPS.genre)];
+  if (Math.random() < 0.6) {
+    let second;
+    do second = pick(STYLE_GROUPS.genre); while (second === parts[0]);
+    parts.push(second);
+  }
+  parts.push(pick(STYLE_GROUPS.instr), pick(STYLE_GROUPS.mood));
+  if (!form.instrumental.checked) parts.push(pick(STYLE_GROUPS.vocals));
+  return parts.join(", ");
+};
 const randomTitle = () => `${pick(TITLE.adj)} ${pick(TITLE.noun)}`;
 function rollAnim(btn) { btn.classList.remove("roll"); void btn.offsetWidth; btn.classList.add("roll"); }
 function rollDice(btn, field, gen) { field.value = gen(); rollAnim(btn); }
 $("#diceBtn").addEventListener("click", (e) => { rollDice(e.currentTarget, form.prompt, randomPrompt); updateLyricsDice(); });
 $("#titleDice").addEventListener("click", (e) => rollDice(e.currentTarget, form.title, randomTitle));
+$("#styleDice").addEventListener("click", (e) => rollDice(e.currentTarget, form.style, randomStyle));
 
 // Lyrics-Würfel: lässt das Modell bei der Generierung eigene Lyrics schreiben (kein Text hier, nur "auto"),
 // geht nur mit vorhandenem Prompt, weil das Modell sonst nichts hat, worüber es schreiben kann.
