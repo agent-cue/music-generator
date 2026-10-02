@@ -110,19 +110,15 @@ const randomStyle = () => {
 const randomTitle = () => `${pick(TITLE.adj)} ${pick(TITLE.noun)}`;
 function rollAnim(btn) { btn.classList.remove("roll"); void btn.offsetWidth; btn.classList.add("roll"); }
 function rollDice(btn, field, gen) { field.value = gen(); rollAnim(btn); }
-$("#diceBtn").addEventListener("click", (e) => { rollDice(e.currentTarget, form.prompt, randomPrompt); updateLyricsDice(); });
+$("#diceBtn").addEventListener("click", (e) => { rollDice(e.currentTarget, form.prompt, randomPrompt); });
 $("#titleDice").addEventListener("click", (e) => rollDice(e.currentTarget, form.title, randomTitle));
 $("#styleDice").addEventListener("click", (e) => rollDice(e.currentTarget, form.style, randomStyle));
 
 // Lyrics-Würfel: lässt das Modell bei der Generierung eigene Lyrics schreiben (kein Text hier, nur "auto"),
 // geht nur mit vorhandenem Prompt, weil das Modell sonst nichts hat, worüber es schreiben kann.
 const lyricsDice = $("#lyricsDice");
-const updateLyricsDice = () => { lyricsDice.disabled = !form.prompt.value.trim(); $("#diceNote").hidden = !lyricsDice.disabled; };
-updateLyricsDice();
-form.prompt.addEventListener("input", updateLyricsDice);
 lyricsDice.addEventListener("click", (e) => {
   e.preventDefault(); e.stopPropagation();   // <summary> soll dabei nicht auf-/zuklappen
-  if (lyricsDice.disabled) return;
   form.instrumental.checked = false; lyricsStash = ""; form.lyrics.value = "";
   syncLyrics(); $("#lyricsBox").open = true;
   rollAnim(e.currentTarget);
@@ -156,7 +152,7 @@ function fillForm(s) {
   const p = s.params;
   form.title.value = s.title || "";
   form.style.value = p.style ?? p.caption;   // ältere Songs haben nur einen Text
-  form.prompt.value = p.prompt ?? ""; updateLyricsDice();
+  form.prompt.value = p.prompt ?? "";
   form.instrumental.checked = p.lyrics === "[Instrumental]";
   form.keep_caption.checked = true;   // Prompt wörtlich ist fest die Vorgabe
   lyricsStash = ""; form.lyrics.value = form.instrumental.checked ? "" : p.lyrics || "";
@@ -195,7 +191,7 @@ async function analyzeFile(file) {
     form.prompt.value = r.caption || "";
     form.style.value = "";
     form.title.value = randomTitle();
-    updateLyricsDice();
+   
     // Nur echter Text außerhalb von [Strukturmarkern] zählt als Gesang — sonst schreibt das
     // Modell manchmal Dinge wie "[Acoustic guitar intro]" gefolgt von "[Instrumental]".
     const hasVocals = (r.lyrics || "").replace(/\[[^\]]*\]/g, "").trim().length > 0;
