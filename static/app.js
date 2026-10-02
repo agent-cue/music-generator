@@ -137,7 +137,7 @@ function readForm() {
   const num = (k, def) => (d[k] === "" || d[k] == null ? def : Number(d[k]));
   return {
     title: d.title || "", prompt: d.prompt || "", style: d.style || "", lyrics: form.instrumental.checked ? "" : d.lyrics || "", instrumental: form.instrumental.checked, keep_caption: form.keep_caption.checked,
-    duration: Number(form.duration.value), bpm: Number(form.bpm.value) <= Number(form.bpm.min) ? 0 : Number(form.bpm.value), keyscale: d.keyscale || "", timesignature: d.timesignature || "",
+    duration: Number(form.duration.value), bpm: Number(form.bpm.value) <= Number(form.bpm.min) ? 0 : Number(form.bpm.value), keyscale: d.keyscale || "", timesignature: d.timesignature || "", vocal_language: form.instrumental.checked ? "" : d.vocal_language || "en",
     seed: num("seed", -1), variants: num("variants", 1),
     inference_steps: Number(form.inference_steps.value), lm_temperature: Number(form.lm_temperature.value),
   };
@@ -168,6 +168,7 @@ function fillForm(s) {
   showDur();
   for (const k of ["keyscale", "timesignature"])
     form[k].value = p[k] || "";
+  form.vocal_language.value = p.vocal_language || "en";
   form.seed.value = p.seed;
   form.variants.value = 1; showDur();
   form.querySelector("details").open = true;
@@ -203,6 +204,8 @@ async function analyzeFile(file) {
       // das Modell bei der Generierung selbst welche schreiben lassen (Prompt ist ja gerade gesetzt).
       form.instrumental.checked = false; lyricsStash = ""; form.lyrics.value = "";
       $("#lyricsBox").open = true;
+      const lang = (r.vocal_language || "").toLowerCase();
+      if ([...form.vocal_language.options].some(o => o.value === lang)) form.vocal_language.value = lang;
     } else { form.instrumental.checked = true; }
     syncLyrics();
     if (r.bpm) { form.bpm.value = r.bpm; }
