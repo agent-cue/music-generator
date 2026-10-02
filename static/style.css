@@ -26,7 +26,8 @@ body {
 /* Kopfzeile: Logo · Wortmarke · Trennlinie · zweizeiliger Titel · rechts Aktionen
    Alles skaliert über --h, damit es auch bei schmalen Fenstern in eine Zeile passt. */
 .top { --h: 84px; display: flex; align-items: center; gap: 16px; }
-.logo { width: var(--h); height: var(--h); flex: none; display: block; }
+.top { --lh: calc(var(--h) * .82 + 3px); }   /* Logo und Wortmarke so hoch wie der Titelblock */
+.logo { width: var(--lh); height: var(--lh); flex: none; display: block; }
 
 /* Logo = geheime Dropzone: unauffällig, erst bei Hover/Drag/Aktivität sichtbar */
 .logo-wrap { position: relative; flex: none; cursor: pointer; border-radius: 14px; }
@@ -55,7 +56,7 @@ body {
 .brand-link { flex: none; display: block; border-radius: 10px; cursor: pointer; }
 .brand-link:hover .brand { filter: brightness(1.15); }
 .brand-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.brand { height: var(--h); width: auto; flex: none; border-radius: 10px; border: 1px solid var(--border); display: block; }
+.brand { height: var(--lh); width: auto; flex: none; border-radius: 10px; border: 1px solid var(--border); display: block; }
 .divider { width: 1px; align-self: stretch; background: var(--border); }
 .title { margin: 0; display: flex; flex-direction: column; justify-content: center; gap: 3px;
   color: var(--muted); font-weight: 600; line-height: 1; }
