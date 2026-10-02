@@ -76,13 +76,20 @@ function updateSlider(box) {
 const showDur = () => document.querySelectorAll(".slider").forEach(updateSlider);
 document.querySelectorAll(".slider").forEach((b) => { b.querySelector("input").addEventListener("input", () => updateSlider(b)); updateSlider(b); });
 // Lyrics: eingeklappt; bei Instrumental steht "[Instrumental]" im Feld, Klick ins Feld schaltet Instrumental aus
+const LYRICS_PLACEHOLDER = "[verse]\n…\n\n[chorus]\n…";
 let lyricsStash = "";
 function syncLyrics() {
   const on = form.instrumental.checked, f = form.lyrics;
   if (on) { if (f.value !== "[Instrumental]") lyricsStash = f.value; f.value = "[Instrumental]"; }
   else if (f.value === "[Instrumental]") f.value = lyricsStash;
   f.classList.toggle("dim", on);
-  $("#lyricsHint").textContent = on ? "[Instrumental]" : f.value.trim() ? "eigene Lyrics" : "Modell schreibt selbst";
+  // Leeres Feld ohne Instrumental = automatisch: das Modell schreibt die Lyrics erst beim Generieren
+  const auto = !on && !f.value.trim();
+  f.classList.toggle("auto", auto);
+  f.placeholder = auto
+    ? "[Automatisch]\nDas Modell schreibt die Lyrics erst beim Generieren, hier erscheint kein Text. Eigene Lyrics kannst du hier eintippen."
+    : LYRICS_PLACEHOLDER;
+  $("#lyricsHint").textContent = on ? "[Instrumental]" : auto ? "[Automatisch]" : "eigene Lyrics";
 }
 const TITLE = {
   adj: ["Midnight", "Velvet", "Neon", "Silent", "Golden", "Hollow", "Electric", "Faded", "Distant", "Crimson", "Slow", "Lunar", "Paper", "Glass", "Amber"],

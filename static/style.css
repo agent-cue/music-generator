@@ -114,6 +114,7 @@ select.mini { width: auto; padding: 3px 6px; font-size: 12px; text-transform: no
 @keyframes roll { from { transform: rotate(0); } to { transform: rotate(180deg); } }
 @media (prefers-reduced-motion: reduce) { .dice.roll svg { animation: none; } }
 textarea.dim { opacity: .5; cursor: pointer; }
+textarea.auto::placeholder { color: var(--accent2); }
 details > textarea { margin-top: 10px; }
 details > .chips { margin: 10px 0 0; }
 .sumhint { margin-left: 8px; text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--muted); }
