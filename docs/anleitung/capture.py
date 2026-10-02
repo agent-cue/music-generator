@@ -31,6 +31,7 @@ WIDTH, HEIGHT, SCALE = 900, 1700, 2   # CSS-Pixel; Bilder entstehen in doppelter
 # Wird auf der Seite ausgeführt: bereitet sie vor und liest Rechtecke (CSS-Pixel, Seitenkoordinaten) aus.
 PAGE_JS = r"""
 (() => {
+  setLang('de');   // die Anleitung ist deutsch, egal welche Sprache der Browser hat
   document.querySelector('#lyricsBox').open = false;
   document.querySelectorAll('details').forEach(d => d.open = false);
   document.activeElement && document.activeElement.blur();

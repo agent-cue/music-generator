@@ -14,8 +14,8 @@
 <div class="wrap">
   <header class="top">
     <div id="dropzone" class="logo-wrap" tabindex="0" role="button"
-         aria-label="Song hochladen und analysieren"
-         title="Song hierher ziehen oder klicken — Stil und Tempo werden übernommen">
+         aria-label="Song hochladen und analysieren" data-i18n-aria="drop_aria"
+         title="Song hierher ziehen oder klicken — Stil und Tempo werden übernommen" data-i18n-title="drop_title">
       <input id="fileInput" type="file" accept="audio/*,.wav,.mp3,.flac,.m4a,.ogg" hidden>
       <svg class="logo" viewBox="0 0 84 84" aria-hidden="true">
       <defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#434445"/><stop offset="1" stop-color="#2b2c2c"/></linearGradient></defs>
@@ -28,12 +28,13 @@
       </svg>
       <div id="dzBubble" class="dz-bubble" role="status" aria-live="polite"></div>
     </div>
-    <a class="brand-link" href="https://alphatester.rabbitfire.de/" target="_blank" rel="noopener" title="Zur Alphatester-Webseite">
+    <a class="brand-link" href="https://alphatester.rabbitfire.de/" target="_blank" rel="noopener" title="Zur Alphatester-Webseite" data-i18n-title="brand_title">
       <img class="brand" src="/static/alphatester.png" alt="Alphatester">
     </a>
     <div class="divider"></div>
     <h1 class="title"><span>MUSIC</span><span>GENERATOR</span></h1>
     <div class="top-right">
+      <div class="langsw" role="group" aria-label="Language / Sprache"><button type="button" data-lang="de">DE</button><button type="button" data-lang="en">EN</button></div>
       <div id="status" class="box small" title="Modellserver">…</div>
       <button id="btnSettings" class="gear" title="Setup" aria-label="Setup">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
@@ -43,24 +44,24 @@
 
   <section class="card">
     <form id="genForm">
-      <div class="field"><div class="lblrow"><span class="lbl" title="Nur zum Wiederfinden, hat keinen Einfluss auf die Musik.">Titel</span>
-        <button type="button" id="titleDice" class="dice" title="Zufälligen Titel würfeln" aria-label="Zufälligen Titel würfeln"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor"/></svg></button></div>
-        <input name="title" placeholder="optional">
+      <div class="field"><div class="lblrow"><span class="lbl" title="Nur zum Wiederfinden, hat keinen Einfluss auf die Musik." data-i18n-title="title_tip" data-i18n="title">Titel</span>
+        <button type="button" id="titleDice" class="dice" title="Zufälligen Titel würfeln" aria-label="Zufälligen Titel würfeln" data-i18n-title="title_dice" data-i18n-aria="title_dice"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor"/></svg></button></div>
+        <input name="title" placeholder="optional" data-i18n-ph="title_ph">
       </div>
 
-      <div class="field"><div class="lblrow"><span class="lbl" title="Deine Idee für den Song: Stimmung, Szene, Klang. Wird zusammen mit dem Stil ans Modell geschickt.">Prompt</span>
-        <button type="button" id="diceBtn" class="dice" title="Zufälligen Prompt würfeln" aria-label="Zufälligen Prompt würfeln">
+      <div class="field"><div class="lblrow"><span class="lbl" title="Deine Idee für den Song: Stimmung, Szene, Klang. Wird zusammen mit dem Stil ans Modell geschickt." data-i18n-title="prompt_tip" data-i18n="prompt">Prompt</span>
+        <button type="button" id="diceBtn" class="dice" title="Zufälligen Prompt würfeln" aria-label="Zufälligen Prompt würfeln" data-i18n-title="prompt_dice" data-i18n-aria="prompt_dice">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor"/></svg>
         </button></div>
-        <textarea name="prompt" rows="2" placeholder="nächtliche Autofahrt durch eine Neonstadt, langsam und hypnotisch"></textarea>
+        <textarea name="prompt" rows="2" placeholder="nächtliche Autofahrt durch eine Neonstadt, langsam und hypnotisch" data-i18n-ph="prompt_ph"></textarea>
       </div>
 
-      <div class="field"><div class="lblrow"><span class="lbl" title="Stilrichtung: Genre, Instrumente, Sound. Der Würfel mischt einen Stil, unter „Stile“ liegen Karten zum Anklicken.">Stil</span>
-        <button type="button" id="styleDice" class="dice" title="Zufälligen Stil würfeln" aria-label="Zufälligen Stil würfeln"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor"/></svg></button></div>
+      <div class="field"><div class="lblrow"><span class="lbl" title="Stilrichtung: Genre, Instrumente, Sound. Der Würfel mischt einen Stil, unter „Stile“ liegen Karten zum Anklicken." data-i18n-title="style_tip" data-i18n="style">Stil</span>
+        <button type="button" id="styleDice" class="dice" title="Zufälligen Stil würfeln" aria-label="Zufälligen Stil würfeln" data-i18n-title="style_dice" data-i18n-aria="style_dice"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor"/></svg></button></div>
         <textarea name="style" rows="2" placeholder="trip hop, dark, dub bass"></textarea>
       </div>
       <details id="styleBox">
-        <summary>Stile</summary>
+        <summary data-i18n="styles">Stile</summary>
         <div class="chips" id="tagChips"></div>
       </details>
 
@@ -68,50 +69,50 @@
       <input type="checkbox" name="instrumental" checked hidden>
       <input type="checkbox" name="keep_caption" checked hidden>
 
-      <div class="field"><span class="lbl">Länge</span>
+      <div class="field"><span class="lbl" data-i18n="length">Länge</span>
         <div class="slider" data-fmt="dur">
           <div class="fill"></div><div class="knob"><span></span></div>
-          <input name="duration" type="range" min="10" max="300" step="5" value="90" aria-label="Länge" title="0:10 bis 5:00">
+          <input name="duration" type="range" min="10" max="300" step="5" value="90" aria-label="Länge" title="0:10 bis 5:00" data-i18n-aria="length" data-i18n-title="length_tip">
         </div>
       </div>
 
-      <div class="field"><span class="lbl" title="Ganz links = Auto: Das Modell wählt das Tempo.">BPM</span>
+      <div class="field"><span class="lbl" title="Ganz links = Auto: Das Modell wählt das Tempo." data-i18n-title="bpm_tip">BPM</span>
         <div class="slider" data-fmt="bpm">
           <div class="fill"></div><div class="knob"><span></span></div>
           <input name="bpm" type="range" min="50" max="200" step="1" value="50" aria-label="BPM">
         </div>
       </div>
 
-      <details id="lyricsBox" title="Leer lassen: Das Modell schreibt eigene Lyrics. Die Sprache wählst du darunter (Standard: Englisch).">
-        <summary><span>Lyrics <span id="lyricsHint" class="sumhint"></span></span>
-          <span class="dice-wrap"><button type="button" id="lyricsDice" class="dice" title="Lyrics automatisch schreiben lassen (erst beim Generieren)" aria-label="Lyrics automatisch schreiben lassen"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor"/></svg></button></span>
+      <details id="lyricsBox" title="Leer lassen: Das Modell schreibt eigene Lyrics. Die Sprache wählst du darunter (Standard: Englisch)." data-i18n-title="lyrics_tip">
+        <summary><span><span data-i18n="lyrics">Lyrics</span> <span id="lyricsHint" class="sumhint"></span></span>
+          <span class="dice-wrap"><button type="button" id="lyricsDice" class="dice" title="Lyrics automatisch schreiben lassen (erst beim Generieren)" aria-label="Lyrics automatisch schreiben lassen" data-i18n-title="lyrics_dice" data-i18n-aria="lyrics_dice"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor"/></svg></button></span>
         </summary>
-        <div class="field lang"><span class="lbl">Sprache</span>
-          <select name="vocal_language" aria-label="Sprache der Lyrics">
-            <option value="en" selected>Englisch</option><option value="de">Deutsch</option><option value="fr">Französisch</option>
-            <option value="es">Spanisch</option><option value="it">Italienisch</option><option value="pt">Portugiesisch</option>
-            <option value="ja">Japanisch</option><option value="ko">Koreanisch</option><option value="zh">Chinesisch</option><option value="ru">Russisch</option>
+        <div class="field lang"><span class="lbl" data-i18n="language">Sprache</span>
+          <select name="vocal_language" aria-label="Sprache der Lyrics" data-i18n-aria="language_aria">
+            <option value="en" selected data-i18n="en">Englisch</option><option value="de" data-i18n="de">Deutsch</option><option value="fr" data-i18n="fr">Französisch</option>
+            <option value="es" data-i18n="es">Spanisch</option><option value="it" data-i18n="it">Italienisch</option><option value="pt" data-i18n="pt">Portugiesisch</option>
+            <option value="ja" data-i18n="ja">Japanisch</option><option value="ko" data-i18n="ko">Koreanisch</option><option value="zh" data-i18n="zh">Chinesisch</option><option value="ru" data-i18n="ru">Russisch</option>
           </select></div>
         <textarea name="lyrics" rows="7" placeholder="[verse]&#10;…&#10;&#10;[chorus]&#10;…"></textarea>
         <div class="chips" id="sectionChips"></div>
       </details>
 
       <details>
-        <summary>Erweitert</summary>
-        <div class="field adv"><span class="lbl" title="Diffusionsschritte der Klangerzeugung. Mehr = langsamer, ab etwa 50 kaum noch hörbar besser (Modell-Vorgabe: 50).">Iterationen</span>
+        <summary data-i18n="advanced">Erweitert</summary>
+        <div class="field adv"><span class="lbl" title="Diffusionsschritte der Klangerzeugung. Mehr = langsamer, ab etwa 50 kaum noch hörbar besser (Modell-Vorgabe: 50)." data-i18n-title="iterations_tip" data-i18n="iterations">Iterationen</span>
           <div class="slider" data-fmt="int">
             <div class="fill"></div><div class="knob"><span></span></div>
-            <input name="inference_steps" type="range" min="10" max="100" step="5" value="50" aria-label="Iterationen">
+            <input name="inference_steps" type="range" min="10" max="100" step="5" value="50" aria-label="Iterationen" data-i18n-aria="iterations">
           </div>
         </div>
-        <div class="field adv"><span class="lbl" title="Wie mutig das Sprachmodell den Song plant. Niedriger = vorhersehbar, höher = abwechslungsreicher, zu hoch = zerfahren (Modell-Vorgabe: 0.85).">Varianz</span>
+        <div class="field adv"><span class="lbl" title="Wie mutig das Sprachmodell den Song plant. Niedriger = vorhersehbar, höher = abwechslungsreicher, zu hoch = zerfahren (Modell-Vorgabe: 0.85)." data-i18n-title="variance_tip" data-i18n="variance">Varianz</span>
           <div class="slider" data-fmt="temp">
             <div class="fill"></div><div class="knob"><span></span></div>
-            <input name="lm_temperature" type="range" min="0.3" max="1.5" step="0.05" value="1" aria-label="Varianz">
+            <input name="lm_temperature" type="range" min="0.3" max="1.5" step="0.05" value="1" aria-label="Varianz" data-i18n-aria="variance">
           </div>
         </div>
         <div class="grid">
-          <label class="field"><span class="lbl">Tonart</span>
+          <label class="field"><span class="lbl" data-i18n="key">Tonart</span>
             <select name="keyscale">
             <option value="">Auto</option>
             <option value="C major">C major</option>
@@ -126,13 +127,13 @@
             <option value="C minor">C minor</option>
             </select>
           </label>
-          <label class="field"><span class="lbl">Takt</span>
+          <label class="field"><span class="lbl" data-i18n="timesig">Takt</span>
             <select name="timesignature">
             <option value="">Auto</option>
-            <option value="4">4/4 (Standard)</option>
-            <option value="3">3/4 (Walzer)</option>
+            <option value="4" data-i18n="ts_default">4/4 (Standard)</option>
+            <option value="3" data-i18n="ts_waltz">3/4 (Walzer)</option>
             <option value="6">6/8</option>
-            <option value="2">2/4 (Marsch)</option>
+            <option value="2" data-i18n="ts_march">2/4 (Marsch)</option>
             <option value="12">12/8</option>
             <option value="5">5/4</option>
             <option value="7">7/8</option>
@@ -141,16 +142,16 @@
             <option value="2">2/2</option>
             </select>
           </label>
-          <label class="field"><span class="lbl" title="Gleicher Seed + gleiche Einstellungen = gleicher Song">Seed</span><input name="seed" type="number" placeholder="zufällig"></label>
+          <label class="field"><span class="lbl" title="Gleicher Seed + gleiche Einstellungen = gleicher Song" data-i18n-title="seed_tip">Seed</span><input name="seed" type="number" placeholder="zufällig" data-i18n-ph="seed_ph"></label>
         </div>
       </details>
 
       <div class="genbar">
-        <div class="field" style="margin-bottom:0"><span class="lbl" title="Anzahl Versionen desselben Prompts, jede mit eigenem Seed. In der Bibliothek heißen sie A, B, C …">Versionen</span>
+        <div class="field" style="margin-bottom:0"><span class="lbl" title="Anzahl Versionen desselben Prompts, jede mit eigenem Seed. In der Bibliothek heißen sie A, B, C …" data-i18n-title="versions_tip" data-i18n="versions">Versionen</span>
           <div class="genrow">
             <div class="slider" data-fmt="int">
               <div class="fill"></div><div class="knob"><span></span></div>
-              <input name="variants" type="range" min="1" max="10" step="1" value="2" aria-label="Versionen">
+              <input name="variants" type="range" min="1" max="10" step="1" value="2" aria-label="Versionen" data-i18n-aria="versions">
             </div>
             <button type="submit" id="genBtn" class="aktion big">2× GENERIEREN</button>
           </div>
@@ -161,9 +162,9 @@
 
   <section class="card">
     <div class="libhead">
-      <h2 class="col-title">Bibliothek</h2>
-      <input id="search" type="search" placeholder="Suchen">
-      <button type="button" id="onlyFav" class="sek icon" aria-pressed="false" title="Nur Favoriten zeigen" aria-label="Nur Favoriten zeigen">☆</button>
+      <h2 class="col-title" data-i18n="library">Bibliothek</h2>
+      <input id="search" type="search" placeholder="Suchen" data-i18n-ph="search">
+      <button type="button" id="onlyFav" class="sek icon" aria-pressed="false" title="Nur Favoriten zeigen" aria-label="Nur Favoriten zeigen" data-i18n-title="only_fav" data-i18n-aria="only_fav">☆</button>
     </div>
     <div id="library"></div>
   </section>
@@ -171,7 +172,7 @@
 
 <footer id="player" hidden>
   <div class="player-in">
-    <button id="playBtn" class="aktion round" aria-label="Abspielen">▶</button>
+    <button id="playBtn" class="aktion round" aria-label="Abspielen" data-i18n-aria="play">▶</button>
     <div class="pmeta">
       <div id="pTitle"></div>
       <div id="waveform"></div>
@@ -186,38 +187,39 @@
     <label class="field"><span class="lbl">Backend</span>
       <select name="engine">
         <option value="acestep_cpp">ACE-Step 1.5 (acestep.cpp)</option>
-        <option value="mock">Mock (Testton)</option>
+        <option value="mock" data-i18n="mock">Mock (Testton)</option>
       </select>
     </label>
-    <label class="field"><span class="lbl" title="DiT + VAE, auf Metal">Synthese-Server</span>
+    <label class="field"><span class="lbl" title="DiT + VAE, auf Metal" data-i18n-title="synth_tip" data-i18n="synth_srv">Synthese-Server</span>
       <input name="server_url" placeholder="http://127.0.0.1:8085">
     </label>
-    <label class="field"><span class="lbl" title="Sprachmodell, auf CPU. Leer = gleicher Server wie Synthese.">Sprachmodell-Server</span>
+    <label class="field"><span class="lbl" title="Sprachmodell, auf CPU. Leer = gleicher Server wie Synthese." data-i18n-title="lm_tip" data-i18n="lm_srv">Sprachmodell-Server</span>
       <input name="lm_url" placeholder="http://127.0.0.1:8086">
     </label>
-    <label class="field"><span class="lbl">Timeout (Min.)</span>
+    <label class="field"><span class="lbl" data-i18n="timeout">Timeout (Min.)</span>
       <input name="timeout_minutes" type="number" min="1" max="600">
     </label>
     <div id="healthOut" class="box small"></div>
-    <div class="field"><span class="lbl">Anordnung</span>
-      <div class="seg" role="group" aria-label="Anordnung">
-        <button type="button" class="sek" data-layout="stack" aria-pressed="true">Untereinander</button>
-        <button type="button" class="sek" data-layout="side" aria-pressed="false" title="Generator links, Bibliothek rechts (ab ca. 1000 px Breite)">Nebeneinander</button>
+    <div class="field"><span class="lbl" data-i18n="layout">Anordnung</span>
+      <div class="seg" role="group" aria-label="Anordnung" data-i18n-aria="layout">
+        <button type="button" class="sek" data-layout="stack" aria-pressed="true" data-i18n="stacked">Untereinander</button>
+        <button type="button" class="sek" data-layout="side" aria-pressed="false" title="Generator links, Bibliothek rechts (ab ca. 1000 px Breite)" data-i18n-title="side_tip" data-i18n="side">Nebeneinander</button>
       </div></div>
-    <div class="field"><span class="lbl">Version</span>
-      <div class="upd-row"><button type="button" id="updCheck" class="sek">Nach Updates suchen</button><span id="updInfo" class="small"></span></div>
+    <div class="field"><span class="lbl" data-i18n="version">Version</span>
+      <div class="upd-row"><button type="button" id="updCheck" class="sek" data-i18n="upd_check">Nach Updates suchen</button><span id="updInfo" class="small"></span></div>
       <ul id="updList" class="upd-list" hidden></ul>
-      <button type="button" id="updApply" class="aktion" hidden>JETZT AKTUALISIEREN</button>
+      <button type="button" id="updApply" class="aktion" hidden data-i18n="upd_apply">JETZT AKTUALISIEREN</button>
     </div>
     <div class="submit">
-      <button type="button" id="testBtn" class="sek">Testen</button>
-      <button value="cancel" class="sek">Abbrechen</button>
-      <button value="save" id="saveBtn" class="aktion">SPEICHERN</button>
+      <button type="button" id="testBtn" class="sek" data-i18n="test">Testen</button>
+      <button value="cancel" class="sek" data-i18n="cancel">Abbrechen</button>
+      <button value="save" id="saveBtn" class="aktion" data-i18n="save">SPEICHERN</button>
     </div>
   </form>
 </dialog>
 
 <script src="/static/vendor/wavesurfer.min.js"></script>
+<script src="/static/i18n.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>

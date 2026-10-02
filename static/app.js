@@ -1,7 +1,8 @@
 const $ = (s) => document.querySelector(s);
 const api = async (path, opts = {}) => {
   // Bei FormData (Datei-Upload) setzt der Browser Content-Type inkl. Boundary selbst — nicht überschreiben.
-  const headers = opts.body instanceof FormData ? opts.headers : { "Content-Type": "application/json", ...opts.headers };
+  // X-Lang: Meldungen des Servers (z. B. beim Update) kommen in der gewählten Sprache zurück.
+  const headers = { "X-Lang": LANG, ...(opts.body instanceof FormData ? opts.headers : { "Content-Type": "application/json", ...opts.headers }) };
   const r = await fetch(path, { ...opts, headers });
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
@@ -71,7 +72,7 @@ function updateSlider(box) {
   const out = SLIDER_FMT[box.dataset.fmt](v, min), span = box.querySelector(".knob span");
   span.textContent = Array.isArray(out) ? out[0] : out;
   span.classList.toggle("small", Array.isArray(out));
-  if (inp.name === "variants") $("#genBtn").textContent = v > 1 ? `${v}× GENERIEREN` : "GENERIEREN";
+  if (inp.name === "variants") $("#genBtn").textContent = v > 1 ? t("generate_n", v) : t("generate");
 }
 const showDur = () => document.querySelectorAll(".slider").forEach(updateSlider);
 document.querySelectorAll(".slider").forEach((b) => { b.querySelector("input").addEventListener("input", () => updateSlider(b)); updateSlider(b); });
@@ -86,10 +87,8 @@ function syncLyrics() {
   // Leeres Feld ohne Instrumental = automatisch: das Modell schreibt die Lyrics erst beim Generieren
   const auto = !on && !f.value.trim();
   f.classList.toggle("auto", auto);
-  f.placeholder = auto
-    ? "[Automatisch]\nDas Modell schreibt die Lyrics erst beim Generieren, hier erscheint kein Text. Eigene Lyrics kannst du hier eintippen."
-    : LYRICS_PLACEHOLDER;
-  $("#lyricsHint").textContent = on ? "[Instrumental]" : auto ? "[Automatisch]" : "eigene Lyrics";
+  f.placeholder = auto ? t("auto_ph") : LYRICS_PLACEHOLDER;
+  $("#lyricsHint").textContent = on ? "[Instrumental]" : auto ? t("auto_lbl") : t("own_lyrics");
 }
 const TITLE = {
   adj: ["Midnight", "Velvet", "Neon", "Silent", "Golden", "Hollow", "Electric", "Faded", "Distant", "Crimson", "Slow", "Lunar", "Paper", "Glass", "Amber"],
@@ -145,7 +144,7 @@ form.addEventListener("submit", async (e) => {
   try {
     await api("/api/generate", { method: "POST", body: JSON.stringify(readForm()) });
     refresh();
-  } catch (err) { alert("Fehler: " + err.message); }
+  } catch (err) { alert(t("error") + ": " + err.message); }
 });
 
 function fillForm(s) {
@@ -184,7 +183,7 @@ function dzState(cls, text) {
 }
 async function analyzeFile(file) {
   if (!file) return;
-  dzState("busy", `Analysiere „${file.name}“ …`);
+  dzState("busy", t("analyzing", file.name));
   const body = new FormData(); body.append("audio", file);
   try {
     const r = await api("/api/analyze", { method: "POST", body });
@@ -209,10 +208,10 @@ async function analyzeFile(file) {
     showDur();
     form.keyscale.value = r.keyscale || "";
     form.timesignature.value = r.timesignature || "";
-    dzState("ok", `„${file.name}“ analysiert — Stil übernommen.`);
+    dzState("ok", t("analyzed", file.name));
     window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (err) {
-    dzState("err", `Fehler: ${err.message}`);
+    dzState("err", `${t("error")}: ${err.message}`);
   }
 }
 dz.addEventListener("click", () => fileInput.click());
@@ -235,7 +234,7 @@ async function refresh() {
 
 function render() {
   const lib = $("#library");
-  if (!songs.length) { lib.innerHTML = `<div class="empty">Noch leer</div>`; return; }
+  if (!songs.length) { lib.innerHTML = `<div class="empty">${t("empty")}</div>`; return; }
   // Varianten desselben Prompts in Entstehungsreihenfolge mit A, B, C … kennzeichnen
   const groups = {};
   songs.forEach((s) => (groups[s.group_id] ??= []).push(s));
@@ -257,29 +256,29 @@ function render() {
     ].filter(Boolean).join(" · ");
     const playing = s.id === currentId && ws?.isPlaying();
     let left, state = "";
-    if (s.status === "done") left = `<button class="aktion round" data-a="play" aria-label="Abspielen">${playing ? "❚❚" : "▶"}</button>`;
+    if (s.status === "done") left = `<button class="aktion round" data-a="play" aria-label="${t("play")}">${playing ? "❚❚" : "▶"}</button>`;
     else if (s.status === "error") left = `<div class="slot err" title="${esc(s.message)}">!</div>`;
     else if (s.status === "running") left = `<div class="slot run">♪</div>`;
     else left = `<div class="slot">${s.status === "cancelled" ? "✕" : "…"}</div>`;
     if (s.status === "running") state = `<div class="s run">${esc(s.message || "0:00")}</div><div class="mini-bar"></div>`;
-    if (s.status === "queued") state = `<div class="s">Wartet</div>`;
-    if (s.status === "cancelled") state = `<div class="s">Abgebrochen</div>`;
-    if (s.status === "error") state = `<div class="s err" title="${esc(s.message)}">Fehler · ${esc(shortErr(s.message))}</div>`;
-    if (s.status === "done" && !played.has(s.id)) { const t = genTime(s); if (t) state = `<div class="s took">Erstellt in ${t}</div>`; }
+    if (s.status === "queued") state = `<div class="s">${t("waiting")}</div>`;
+    if (s.status === "cancelled") state = `<div class="s">${t("cancelled")}</div>`;
+    if (s.status === "error") state = `<div class="s err" title="${esc(s.message)}">${t("error")} · ${esc(shortErr(s.message))}</div>`;
+    if (s.status === "done" && !played.has(s.id)) { const tm = genTime(s); if (tm) state = `<div class="s took">${t("created_in")} ${tm}</div>`; }
     const actions = [
-      s.status === "done" && `<button class="sek icon ${s.favorite ? "on" : ""}" data-a="fav" title="Favorit">${s.favorite ? "★" : "☆"}</button>`,
-      s.status === "done" && `<a class="download icon fmt" href="${s.url}?download=1" title="Download">${s.file.endsWith(".wav") ? "WAV" : "MP3"}</a>`,
-      `<button class="sek icon" data-a="more" title="Weitere Variante (neuer Seed)">＋</button>`,
-      `<button class="sek icon" data-a="reuse" title="Einstellungen ins Formular übernehmen"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12 3l7 7h-4v10h-6V10H5l7-7z"/></svg></button>`,
-      ["error", "cancelled"].includes(s.status) && `<button class="sek icon" data-a="retry" title="Erneut versuchen">↻</button>`,
-      s.status !== "running" && `<button class="sek icon del" data-a="del" title="${s.status === "queued" ? "Abbrechen" : "Löschen"}">✕</button>`,
+      s.status === "done" && `<button class="sek icon ${s.favorite ? "on" : ""}" data-a="fav" title="${t("fav")}">${s.favorite ? "★" : "☆"}</button>`,
+      s.status === "done" && `<a class="download icon fmt" href="${s.url}?download=1" title="${t("download")}">${s.file.endsWith(".wav") ? "WAV" : "MP3"}</a>`,
+      `<button class="sek icon" data-a="more" title="${t("more")}">＋</button>`,
+      `<button class="sek icon" data-a="reuse" title="${t("reuse")}"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12 3l7 7h-4v10h-6V10H5l7-7z"/></svg></button>`,
+      ["error", "cancelled"].includes(s.status) && `<button class="sek icon" data-a="retry" title="${t("retry")}">↻</button>`,
+      s.status !== "running" && `<button class="sek icon del" data-a="del" title="${s.status === "queued" ? t("cancel") : t("del")}">✕</button>`,
     ].filter(Boolean).join("");
     return `<div class="song ${s.id === currentId ? "playing" : ""}${newGroup ? " new-group" : ""}" data-id="${s.id}">
       ${left}
       <div style="min-width:0">${s.id === editingId
         ? `<input class="t-edit" data-id="${s.id}" value="${esc(s.title || "")}" placeholder="${esc(s.caption.split(",").slice(0, 3).join(","))}">`
-        : `<div class="t" data-a="rename" title="Klicken zum Umbenennen">${esc(title)}</div>`
-      }<div class="m" title="IT = Iterationen · VAR = Varianz">${esc(meta)}</div>${state}</div>
+        : `<div class="t" data-a="rename" title="${t("rename")}">${esc(title)}</div>`
+      }<div class="m" title="${t("meta_tip")}">${esc(meta)}</div>${state}</div>
       <div class="actions">${actions}</div></div>`;
   }).join("");
   // Symbolknöpfe: Tooltip auch als Name für Screenreader
@@ -287,10 +286,10 @@ function render() {
     .forEach((el) => el.setAttribute("aria-label", el.title));
 }
 function shortErr(msg = "") {
-  if (/nicht erreichbar/i.test(msg)) return "Server offline";
-  if (/Codes/i.test(msg)) return "Keine Codes";
-  if (/Zeitüberschreitung/i.test(msg)) return "Timeout";
-  return "Details im Tooltip";
+  if (/nicht erreichbar/i.test(msg)) return t("err_offline");
+  if (/Codes/i.test(msg)) return t("err_codes");
+  if (/Zeitüberschreitung/i.test(msg)) return t("err_timeout");
+  return t("err_details");
 }
 
 $("#library").addEventListener("click", async (e) => {
@@ -308,7 +307,7 @@ $("#library").addEventListener("click", async (e) => {
     await api("/api/generate", { method: "POST", body: JSON.stringify({ ...p, instrumental: false, keep_caption: p.use_cot_caption !== true, title: s.title || "", seed: -1, variants: 1, group_id: s.group_id }) });
   }
   if (a === "del") {
-    if (s.status !== "queued" && !confirm("Song löschen?")) return;
+    if (s.status !== "queued" && !confirm(t("del_q"))) return;
     await api(`/api/songs/${id}`, { method: "DELETE" }).catch((err) => alert(err.message));
   }
   refresh();
@@ -378,10 +377,10 @@ async function checkHealth() {
   try {
     const h = await api("/api/health");
     el.className = "box small " + (h.ok ? "" : "err");
-    el.textContent = h.engine === "mock" ? "Mock" : h.ok ? "" : "Offline";   // bei "alles ok" nichts anzeigen
-    el.title = h.error || (h.props ? `Modelle: ${Object.values(h.props.models || {}).flat().join(", ")}` : "Modellserver");
+    el.textContent = h.engine === "mock" ? "Mock" : h.ok ? "" : t("offline");   // bei "alles ok" nichts anzeigen
+    el.title = h.error || (h.props ? `${t("models")}: ${Object.values(h.props.models || {}).flat().join(", ")}` : t("model_server"));
     return h;
-  } catch { el.className = "box small err"; el.textContent = "Backend offline"; }
+  } catch { el.className = "box small err"; el.textContent = t("backend_offline"); }
 }
 const dlg = $("#settingsDlg"), sf = $("#settingsForm");
 $("#btnSettings").onclick = async () => {
@@ -395,11 +394,11 @@ const saveSettings = () => api("/api/settings", { method: "PUT", body: JSON.stri
   engine: sf.engine.value, server_url: sf.server_url.value.trim(), lm_url: sf.lm_url.value.trim(), timeout_minutes: Number(sf.timeout_minutes.value) || 30 }) });
 $("#testBtn").onclick = async () => {
   const out = $("#healthOut");
-  out.className = "box small"; out.textContent = "Teste";
+  out.className = "box small"; out.textContent = t("testing");
   await saveSettings();
   const h = await checkHealth();
   out.className = "box small " + (h?.ok ? "done" : "err");
-  out.textContent = h?.ok ? "Verbunden" : "Offline";
+  out.textContent = h?.ok ? t("connected") : t("offline");
   out.title = h?.error || "";
 };
 // Anordnung: untereinander oder Generator links / Bibliothek rechts
@@ -415,33 +414,40 @@ try { setLayout(localStorage.getItem("layout") === "side" ? "side" : "stack"); }
 // Updates von GitHub
 const updInfo = $("#updInfo"), updList = $("#updList"), updApply = $("#updApply");
 async function updCheck() {
-  updApply.hidden = true; updList.hidden = true; updInfo.className = "small"; updInfo.textContent = "Suche …";
+  updApply.hidden = true; updList.hidden = true; updInfo.className = "small"; updInfo.textContent = t("upd_search");
   const r = await api("/api/update/check").catch(e => ({ ok: false, error: e.message }));
   if (!r.ok) { updInfo.className = "small err-t"; updInfo.textContent = r.error; return; }
-  if (!r.behind) { updInfo.textContent = `Aktuell (${r.current})`; return; }
-  updInfo.textContent = `${r.behind} neue${r.behind > 1 ? "" : "s"} Update${r.behind > 1 ? "s" : ""} (${r.current} → ${r.latest})`;
+  if (!r.behind) { updInfo.textContent = t("upd_current", r.current); return; }
+  updInfo.textContent = t("upd_new", r.behind, r.current, r.latest);
   updList.replaceChildren(...r.changes.map(c => Object.assign(document.createElement("li"), { textContent: c })));
   updList.hidden = false;
-  if (r.dirty) { updInfo.className = "small err-t"; updInfo.textContent += " · eigene Dateiänderungen, automatisch nicht möglich"; return; }
-  if (r.needs_install) updInfo.textContent += " · danach bitte einmal Install starten";
+  if (r.dirty) { updInfo.className = "small err-t"; updInfo.textContent += t("upd_dirty"); return; }
+  if (r.needs_install) updInfo.textContent += t("upd_install");
   updApply.hidden = false;
 }
 $("#updCheck").onclick = updCheck;
 updApply.onclick = async () => {
-  updApply.disabled = true; updInfo.className = "small"; updInfo.textContent = "Lade herunter …";
+  updApply.disabled = true; updInfo.className = "small"; updInfo.textContent = t("upd_loading");
   try {
     await api("/api/update/apply", { method: "POST" });
   } catch (e) { updInfo.className = "small err-t"; updInfo.textContent = e.message; updApply.disabled = false; return; }
-  updInfo.textContent = "Installiert, App startet neu …";
+  updInfo.textContent = t("upd_restart");
   for (let i = 0; i < 60; i++) {   // warten, bis der neue Server antwortet
     await new Promise(r => setTimeout(r, 1000));
     try { const h = await fetch("/api/queue", { cache: "no-store" }); if (h.ok && i > 1) return location.reload(); } catch {}
   }
-  updInfo.className = "small err-t"; updInfo.textContent = "Neustart dauert ungewöhnlich lang. Bitte Music Generator ON starten.";
+  updInfo.className = "small err-t"; updInfo.textContent = t("upd_slow");
 };
 $("#btnSettings").addEventListener("click", () => { updInfo.textContent = ""; updList.hidden = true; updApply.hidden = true; updApply.disabled = false; });
 
 dlg.addEventListener("close", async () => { if (dlg.returnValue === "save") { await saveSettings(); checkHealth(); } });
+
+// Sprachumschalter (DE | EN)
+document.querySelectorAll("[data-lang]").forEach((b) => b.addEventListener("click", () => setLang(b.dataset.lang)));
+document.addEventListener("langchange", () => {
+  showDur(); syncLyrics(); render(); checkHealth();
+  updInfo.textContent = ""; updList.hidden = true; updApply.hidden = true;
+});
 
 checkHealth();
 setInterval(checkHealth, 15000);

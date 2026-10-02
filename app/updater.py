@@ -6,13 +6,17 @@ import subprocess
 import sys
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Header, HTTPException, Request
 
 from . import db
 
 ROOT = Path(__file__).resolve().parent.parent
 BRANCH = "main"
 router = APIRouter(prefix="/api/update")
+
+
+def tr(lang: str, de: str, en: str) -> str:
+    return en if lang == "en" else de
 
 
 def git(*args: str, timeout: int = 60) -> str:
@@ -23,9 +27,10 @@ def git(*args: str, timeout: int = 60) -> str:
     return r.stdout.strip()
 
 
-def _status() -> dict:
+def _status(lang: str = "de") -> dict:
     if not (ROOT / ".git").exists():
-        raise RuntimeError("Dies ist keine Git-Installation. Updates gehen nur, wenn die App per git clone installiert wurde.")
+        raise RuntimeError(tr(lang, "Dies ist keine Git-Installation. Updates gehen nur, wenn die App per git clone installiert wurde.",
+                             "This is not a Git installation. Updates only work if the app was installed with git clone."))
     git("fetch", "--quiet", "origin", BRANCH, timeout=30)
     remote = f"origin/{BRANCH}"
     behind = int(git("rev-list", "--count", f"HEAD..{remote}"))
@@ -42,30 +47,30 @@ def _status() -> dict:
 
 
 @router.get("/check")
-async def check():
+async def check(x_lang: str = Header("de")):
     try:
-        return {"ok": True, **await asyncio.to_thread(_status)}
+        return {"ok": True, **await asyncio.to_thread(_status, x_lang)}
     except Exception as e:  # noqa: BLE001
-        return {"ok": False, "error": _friendly(e)}
+        return {"ok": False, "error": _friendly(e, x_lang)}
 
 
-def _friendly(e: Exception) -> str:
+def _friendly(e: Exception, lang: str = "de") -> str:
     msg = str(e) or e.__class__.__name__
     if isinstance(e, subprocess.TimeoutExpired):
-        return "Keine Antwort von GitHub (Internetverbindung?)."
+        return tr(lang, "Keine Antwort von GitHub (Internetverbindung?).", "No response from GitHub (internet connection?).")
     if "Could not resolve" in msg or "unable to access" in msg:
-        return "GitHub ist nicht erreichbar (Internetverbindung?)."
+        return tr(lang, "GitHub ist nicht erreichbar (Internetverbindung?).", "GitHub is not reachable (internet connection?).")
     return msg
 
 
-def _apply() -> dict:
-    s = _status()
+def _apply(lang: str = "de") -> dict:
+    s = _status(lang)
     if not s["behind"]:
-        raise RuntimeError("Du hast bereits die aktuelle Version.")
+        raise RuntimeError(tr(lang, "Du hast bereits die aktuelle Version.", "You already have the latest version."))
     if s["dirty"]:
-        raise RuntimeError("Im Programmordner gibt es eigene Änderungen an Dateien. Das Update würde sie überschreiben.")
+        raise RuntimeError(tr(lang, "Im Programmordner gibt es eigene Änderungen an Dateien. Das Update würde sie überschreiben.", "There are local changes to files in the program folder. The update would overwrite them."))
     if s["ahead"]:
-        raise RuntimeError("Diese Installation hat eigene Commits, die nicht auf GitHub sind. Automatisch geht das nicht.")
+        raise RuntimeError(tr(lang, "Diese Installation hat eigene Commits, die nicht auf GitHub sind. Automatisch geht das nicht.", "This installation has its own commits that are not on GitHub. Not possible automatically."))
     before = git("rev-parse", "HEAD")
     git("pull", "--ff-only", "--quiet", "origin", BRANCH, timeout=120)
     if {"pyproject.toml", "uv.lock"} & set(git("diff", "--name-only", before, "HEAD").splitlines()):
@@ -74,14 +79,14 @@ def _apply() -> dict:
 
 
 @router.post("/apply")
-async def apply(request: Request):
+async def apply(request: Request, x_lang: str = Header("de")):
     busy = db.one("SELECT COUNT(*) AS n FROM songs WHERE status IN ('queued','running')")["n"]
     if busy:
-        raise HTTPException(409, "Es laufen noch Songs. Bitte erst fertig werden lassen oder abbrechen.")
+        raise HTTPException(409, tr(x_lang, "Es laufen noch Songs. Bitte erst fertig werden lassen oder abbrechen.", "Songs are still running. Please let them finish or cancel them first."))
     try:
-        res = await asyncio.to_thread(_apply)
+        res = await asyncio.to_thread(_apply, x_lang)
     except Exception as e:  # noqa: BLE001
-        raise HTTPException(400, _friendly(e)) from e
+        raise HTTPException(400, _friendly(e, x_lang)) from e
     asyncio.get_running_loop().call_later(0.8, _restart, request.url.port or 8765)
     return {"ok": True, **res}
 
