@@ -3,9 +3,12 @@ import asyncio
 import json
 import random
 import re
+import subprocess
+import sys
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.responses import FileResponse
@@ -60,6 +63,9 @@ async def worker():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db.init()
+    if sys.platform == "darwin":   # Symbole der Start-Dateien erneuern (Git/ZIP setzen sie zurück)
+        subprocess.Popen(["bash", str(Path(__file__).resolve().parent.parent / "scripts" / "symbole.sh")],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     task = asyncio.create_task(worker())
     _wakeup.set()
     yield
