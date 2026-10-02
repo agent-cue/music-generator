@@ -406,6 +406,45 @@ $("#testBtn").onclick = async () => {
   out.textContent = h?.ok ? "Verbunden" : "Offline";
   out.title = h?.error || "";
 };
+// Anordnung: untereinander oder Generator links / Bibliothek rechts
+function setLayout(l) {
+  document.querySelector(".wrap").classList.toggle("side", l === "side");
+  document.documentElement.classList.toggle("side", l === "side");
+  document.querySelectorAll("[data-layout]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.layout === l)));
+  try { localStorage.setItem("layout", l); } catch {}
+}
+document.querySelectorAll("[data-layout]").forEach(b => b.onclick = () => setLayout(b.dataset.layout));
+try { setLayout(localStorage.getItem("layout") === "side" ? "side" : "stack"); } catch { setLayout("stack"); }
+
+// Updates von GitHub
+const updInfo = $("#updInfo"), updList = $("#updList"), updApply = $("#updApply");
+async function updCheck() {
+  updApply.hidden = true; updList.hidden = true; updInfo.className = "small"; updInfo.textContent = "Suche …";
+  const r = await api("/api/update/check").catch(e => ({ ok: false, error: e.message }));
+  if (!r.ok) { updInfo.className = "small err-t"; updInfo.textContent = r.error; return; }
+  if (!r.behind) { updInfo.textContent = `Aktuell (${r.current})`; return; }
+  updInfo.textContent = `${r.behind} neue${r.behind > 1 ? "" : "s"} Update${r.behind > 1 ? "s" : ""} (${r.current} → ${r.latest})`;
+  updList.replaceChildren(...r.changes.map(c => Object.assign(document.createElement("li"), { textContent: c })));
+  updList.hidden = false;
+  if (r.dirty) { updInfo.className = "small err-t"; updInfo.textContent += " · eigene Dateiänderungen, automatisch nicht möglich"; return; }
+  if (r.needs_install) updInfo.textContent += " · danach bitte einmal Install starten";
+  updApply.hidden = false;
+}
+$("#updCheck").onclick = updCheck;
+updApply.onclick = async () => {
+  updApply.disabled = true; updInfo.className = "small"; updInfo.textContent = "Lade herunter …";
+  try {
+    await api("/api/update/apply", { method: "POST" });
+  } catch (e) { updInfo.className = "small err-t"; updInfo.textContent = e.message; updApply.disabled = false; return; }
+  updInfo.textContent = "Installiert, App startet neu …";
+  for (let i = 0; i < 60; i++) {   // warten, bis der neue Server antwortet
+    await new Promise(r => setTimeout(r, 1000));
+    try { const h = await fetch("/api/queue", { cache: "no-store" }); if (h.ok && i > 1) return location.reload(); } catch {}
+  }
+  updInfo.className = "small err-t"; updInfo.textContent = "Neustart dauert ungewöhnlich lang. Bitte Music Generator ON starten.";
+};
+$("#btnSettings").addEventListener("click", () => { updInfo.textContent = ""; updList.hidden = true; updApply.hidden = true; updApply.disabled = false; });
+
 dlg.addEventListener("close", async () => { if (dlg.returnValue === "save") { await saveSettings(); checkHealth(); } });
 
 checkHealth();

@@ -245,3 +245,16 @@ dialog .col-title { margin-bottom: 16px; }
 .field.lang { flex-direction: row; align-items: center; gap: 12px; margin: 4px 0 10px; }
 .field.lang .lbl { margin: 0; }
 .field.lang select { width: auto; min-width: 160px; }
+
+/* Anordnung nebeneinander: Generator links, Bibliothek rechts (nur bei genug Breite) */
+.seg { display: flex; gap: 8px; }
+.seg button[aria-pressed=true] { border-color: var(--accent2); color: var(--accent2); }
+.upd-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.upd-list { margin: 6px 0 8px; padding-left: 18px; font-size: 12px; color: var(--muted); }
+.err-t { color: var(--error); }
+@media (min-width: 1000px) {
+  .wrap.side { max-width: 1480px; display: grid; grid-template-columns: minmax(400px, 480px) minmax(0, 1fr); align-items: start; }
+  .wrap.side > .top { grid-column: 1 / -1; }
+  .side .player-in { max-width: 1480px; }
+}
+.upd-row .small { font-size: 12px; color: var(--muted); }

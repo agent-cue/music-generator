@@ -200,6 +200,16 @@
       <input name="timeout_minutes" type="number" min="1" max="600">
     </label>
     <div id="healthOut" class="box small"></div>
+    <div class="field"><span class="lbl">Anordnung</span>
+      <div class="seg" role="group" aria-label="Anordnung">
+        <button type="button" class="sek" data-layout="stack" aria-pressed="true">Untereinander</button>
+        <button type="button" class="sek" data-layout="side" aria-pressed="false" title="Generator links, Bibliothek rechts (ab ca. 1000 px Breite)">Nebeneinander</button>
+      </div></div>
+    <div class="field"><span class="lbl">Version</span>
+      <div class="upd-row"><button type="button" id="updCheck" class="sek">Nach Updates suchen</button><span id="updInfo" class="small"></span></div>
+      <ul id="updList" class="upd-list" hidden></ul>
+      <button type="button" id="updApply" class="aktion" hidden>JETZT AKTUALISIEREN</button>
+    </div>
     <div class="submit">
       <button type="button" id="testBtn" class="sek">Testen</button>
       <button value="cancel" class="sek">Abbrechen</button>

@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import db
+from . import db, updater
 from .engines import EngineError, make_engine
 
 STATIC = db.ROOT / "static"
@@ -67,6 +67,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Music Generator", lifespan=lifespan)
+app.include_router(updater.router)
 
 
 @app.middleware("http")
