@@ -1,4 +1,5 @@
 """Erzeugt die Installationsanleitung für den Music Generator als PDF."""
+import json
 import sys
 from pathlib import Path
 
@@ -298,9 +299,7 @@ def page_steps(c):
     y -= 16
 
     # Terminal-Mockup mit typischer Ausgabe
-    lines = ["═══════════════════════════════════════",
-             "  MUSIC GENERATOR · Installation",
-             "═══════════════════════════════════════",
+    lines = ["  MUSIC GENERATOR · Installation",
              "",
              "▸ Mac prüfen",
              "  Chip:        Apple M4 (arm64)",
@@ -328,9 +327,10 @@ def page_steps(c):
                 "<b>Enter</b> übernimmt die Empfehlung, mit 1, 2 oder 3 wählst du selbst. "
                 "Danach noch einmal Enter zum Starten, der Rest läuft von allein.", M, y, W - 2 * M)
     y -= 14
-    note(c, "Warnt macOS beim ersten Doppelklick, die Datei stamme von einem nicht verifizierten Entwickler: "
-            "<b>Rechtsklick auf „Install“ › Öffnen</b> und im Dialog nochmals <b>Öffnen</b> wählen. "
-            "Das ist nur beim allerersten Mal nötig.", y, BLUE, "macOS-Warnung")
+    note(c, "Bietet macOS nur „In den Papierkorb legen“ oder „Abbrechen“ an: <b>Abbrechen</b> wählen, dann "
+            "<b>Systemeinstellungen › Datenschutz &amp; Sicherheit</b> öffnen und ganz unten bei „Install“ auf "
+            "<b>Dennoch öffnen</b> klicken (Passwort oder Touch ID). Danach Install nochmal doppelklicken. "
+            "Der Terminal-Weg steht auf Seite 4.", y, BLUE, "macOS-Warnung")
     footer(c, 3)
 
 
@@ -418,6 +418,16 @@ def page_flow(c):
         c.setLineWidth(0.6)
         c.line(rx, ry - 15, rx + rw, ry - 15)
         ry -= 20
+    # Unter beiden Spalten: wenn macOS die Datei blockiert
+    yy = y - len(steps) * (bh + gap) + gap - 24
+    yy = h2(c, "Wenn macOS die Datei blockiert", yy)
+    yy = para(c, "Das passiert bei Dateien aus dem Internet, vor allem bei einem ZIP. Statt über die Systemeinstellungen "
+                 "(Seite 3) geht es auch im Terminal in einem Schritt für den ganzen Ordner. Danach lassen sich Install "
+                 "und Music Generator ON/OFF ohne Nachfrage öffnen:", M, yy, W - 2 * M)
+    yy -= 8
+    yy = code(c, "xattr -dr com.apple.quarantine ~/MusicGenerator", M, yy, W - 2 * M)
+    yy -= 8
+    para(c, "Mit <b>git clone</b> (Schritt 1) tritt die Warnung gar nicht erst auf.", M, yy, W - 2 * M, small)
     footer(c, 4)
 
 
@@ -440,24 +450,17 @@ def page_app(c):
     y -= 16
     y = h2(c, "Der Bildschirm", y)
 
-    # Screenshot mit Markierungen
+    # Screenshot mit Markierungen (Positionen liefert capture.py in marks.json)
+    mk = json.loads((HERE / "marks.json").read_text())["form"]
     iw_pt = 300
-    ih_pt = iw_pt * 1660 / 1800
+    ih_pt = iw_pt * mk["h"] / mk["w"]
     ix, iy = M, y - ih_pt
     c.setStrokeColor(BORDER)
     c.roundRect(ix - 1, iy - 1, iw_pt + 2, ih_pt + 2, 6, stroke=1, fill=0)
     c.drawImage(str(HERE / "form.png"), ix, iy, iw_pt, ih_pt)
-    sc = iw_pt / 1800
-
-    def pos(px, py):
-        return ix + px * sc, iy + ih_pt - py * sc
-
-    # Nummern neben die Beschriftungen setzen, nicht auf die Bedienelemente
-    marks = [(200, 175), (1605, 271), (1605, 438), (215, 630), (265, 1000), (220, 1162),
-             (430, 1333), (330, 1403), (1440, 1482), (1635, 112)]
-    for n, (px, py) in enumerate(marks, 1):
-        bx, by = pos(px, py)
-        badge(c, n, bx, by, 8.5)
+    sc = iw_pt / mk["w"]
+    for n, (px, py) in enumerate(mk["marks"], 1):
+        badge(c, n, ix + px * sc, iy + ih_pt - py * sc, 7)
 
     legend = [
         ("Logo", "Geheimes Upload-Feld: Song darauf ziehen oder klicken. Die App analysiert ihn und füllt Prompt, Tempo und Länge aus."),
@@ -466,9 +469,9 @@ def page_app(c):
         ("Stil", "Genre und Instrumente. Die Karten darunter hängen Begriffe an."),
         ("Länge", "10 Sekunden bis 5 Minuten, Standard 1:30."),
         ("BPM", "Tempo. Ganz links = Auto, das Modell wählt."),
-        ("Lyrics", "Eingeklappt = instrumental. Würfel: das Modell schreibt eigene Texte."),
+        ("Lyrics", "Eingeklappt = instrumental. Würfel (braucht einen Prompt): das Modell schreibt eigene Texte."),
         ("Erweitert", "Iterationen (Qualität), Varianz (Abwechslung), Tonart, Takt, Seed."),
-        ("Generieren", "Varianten 1 bis 10 wählen und los. Mehrere heißen dann A, B, C …"),
+        ("Generieren", "Unten die Zahl der Versionen (1 bis 10) wählen und los. Mehrere heißen dann A, B, C … Die Leiste bleibt beim Scrollen sichtbar."),
         ("Zahnrad", "Einstellungen und Verbindungstest zum Modellserver."),
     ]
     lx = ix + iw_pt + 18
@@ -485,18 +488,20 @@ def page_app(c):
 def page_help(c):
     y = header(c, "Bibliothek, Updates, Hilfe", "Wenn der erste Song fertig ist")
     y = h2(c, "Ein Song in der Bibliothek", y)
+    rk = json.loads((HERE / "marks.json").read_text())["row"]
     iw_pt = W - 2 * M
-    ih_pt = iw_pt * 152 / 1658
+    ih_pt = iw_pt * rk["h"] / rk["w"]
     ix, iy = M, y - ih_pt - 10
     c.setFillColor(PANEL)
     c.roundRect(ix - 4, iy - 4, iw_pt + 8, ih_pt + 8, 6, stroke=0, fill=1)
     c.drawImage(str(HERE / "row.png"), ix, iy, iw_pt, ih_pt)
-    sc = iw_pt / 1658
-    for n, px in enumerate([82, 1259, 1349, 1437, 1511, 1585], 1):
+    sc = iw_pt / rk["w"]
+    # Play steht links, die fünf Knöpfe rechts; Nummern über die Zeile
+    for n, px in enumerate(rk["xs"], 1):
         badge(c, n, ix + px * sc, iy + ih_pt + 8, 7.5)
     y = iy - 16
     items = [("Play", "abspielen, mit Wellenform unten"), ("Stern", "als Favorit markieren"),
-             ("WAV", "herunterladen, 48 kHz, 16 Bit"), ("Plus", "weitere Variante mit neuem Seed"),
+             ("WAV", "herunterladen, 48 kHz, 16 Bit"), ("Plus", "weitere Version mit neuem Seed"),
              ("Pfeil", "Einstellungen ins Formular übernehmen"), ("Kreuz", "löschen")]
     colw = (W - 2 * M) / 3
     st = ParagraphStyle("it", parent=small, fontSize=8.6, leading=11, textColor=INK)

@@ -52,7 +52,7 @@ Songs und Einstellungen in `data/` bleiben erhalten.
 | `scripts/metal_selftest.py` | Grafikchip-Test des Installers |
 | `app/` | FastAPI-Backend: Queue, Bibliothek, Anbindung an ace-server |
 | `static/` | Oberfläche |
-| `docs/anleitung/` | Quelle der Installationsanleitung (`python3 build_pdf.py ../../Installationsanleitung.pdf`, braucht `reportlab`) |
+| `docs/anleitung/` | Quelle der Installationsanleitung. `capture.py` fotografiert die laufende App (`uv run --with websockets python docs/anleitung/capture.py`), `build_pdf.py` baut daraus das PDF (`uv run --with reportlab python docs/anleitung/build_pdf.py Installationsanleitung.pdf`) |
 | `engine/` | acestep.cpp und Modelle (vom Installer, nicht im Repo) |
 | `data/` | Songs, Datenbank, Logs, `engine.conf` (nicht im Repo) |
 
