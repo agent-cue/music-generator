@@ -19,6 +19,7 @@ const SECTIONS = ["[intro]", "[verse]", "[pre-chorus]", "[chorus]", "[bridge]", 
 
 let songs = [];
 let currentId = null;
+let onlyFav = false;       // Favoriten-Filter der Bibliothek
 let editingId = null;   // id des Songs, dessen Titel gerade bearbeitet wird
 
 // Erstellungszeit anzeigen, bis ein Song zum ersten Mal abgespielt wurde (danach dauerhaft ausgeblendet)
@@ -64,6 +65,7 @@ function updateSlider(box) {
   const out = SLIDER_FMT[box.dataset.fmt](v, min), span = box.querySelector(".knob span");
   span.textContent = Array.isArray(out) ? out[0] : out;
   span.classList.toggle("small", Array.isArray(out));
+  if (inp.name === "variants") $("#genBtn").textContent = v > 1 ? `${v}× GENERIEREN` : "GENERIEREN";
 }
 const showDur = () => document.querySelectorAll(".slider").forEach(updateSlider);
 document.querySelectorAll(".slider").forEach((b) => { b.querySelector("input").addEventListener("input", () => updateSlider(b)); updateSlider(b); });
@@ -89,7 +91,8 @@ $("#titleDice").addEventListener("click", (e) => rollDice(e.currentTarget, form.
 // Lyrics-Würfel: lässt das Modell bei der Generierung eigene Lyrics schreiben (kein Text hier, nur "auto"),
 // geht nur mit vorhandenem Prompt, weil das Modell sonst nichts hat, worüber es schreiben kann.
 const lyricsDice = $("#lyricsDice");
-const updateLyricsDice = () => { lyricsDice.disabled = !form.prompt.value.trim(); };
+const updateLyricsDice = () => { lyricsDice.disabled = !form.prompt.value.trim(); $("#diceNote").hidden = !lyricsDice.disabled; };
+updateLyricsDice();
 form.prompt.addEventListener("input", updateLyricsDice);
 lyricsDice.addEventListener("click", (e) => {
   e.preventDefault(); e.stopPropagation();   // <summary> soll dabei nicht auf-/zuklappen
@@ -196,7 +199,7 @@ dz.addEventListener("drop", (e) => { e.preventDefault(); dz.classList.remove("dr
 
 // ---------------------------------------------------------------- Bibliothek
 async function refresh() {
-  const q = new URLSearchParams({ q: $("#search").value, favorites: $("#onlyFav").checked });
+  const q = new URLSearchParams({ q: $("#search").value, favorites: onlyFav });
   songs = await api("/api/songs?" + q);
   if (!editingId) render();   // während des Umbenennens nicht neu zeichnen, sonst verliert das Feld den Fokus
   const qu = await api("/api/queue");
@@ -217,8 +220,9 @@ function render() {
     [...arr].reverse().forEach((s, i) => (letter[s.id] = String.fromCharCode(65 + i)));
   });
 
-  lib.innerHTML = songs.map((s) => {
+  lib.innerHTML = songs.map((s, i) => {
     const m = s.result_meta || {}, p = s.params || {};
+    const newGroup = i > 0 && songs[i - 1].group_id !== s.group_id;
     const title = (s.title || s.caption.split(",").slice(0, 3).join(",")) + (letter[s.id] ? ` ${letter[s.id]}` : "");
     const meta = [
       m.bpm && `${m.bpm}BPM`,
@@ -243,16 +247,19 @@ function render() {
       `<button class="sek icon" data-a="more" title="Weitere Variante (neuer Seed)">＋</button>`,
       `<button class="sek icon" data-a="reuse" title="Einstellungen ins Formular übernehmen"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12 3l7 7h-4v10h-6V10H5l7-7z"/></svg></button>`,
       ["error", "cancelled"].includes(s.status) && `<button class="sek icon" data-a="retry" title="Erneut versuchen">↻</button>`,
-      s.status !== "running" && `<button class="sek icon" data-a="del" title="${s.status === "queued" ? "Abbrechen" : "Löschen"}">✕</button>`,
+      s.status !== "running" && `<button class="sek icon del" data-a="del" title="${s.status === "queued" ? "Abbrechen" : "Löschen"}">✕</button>`,
     ].filter(Boolean).join("");
-    return `<div class="song ${s.id === currentId ? "playing" : ""}" data-id="${s.id}">
+    return `<div class="song ${s.id === currentId ? "playing" : ""}${newGroup ? " new-group" : ""}" data-id="${s.id}">
       ${left}
       <div style="min-width:0">${s.id === editingId
         ? `<input class="t-edit" data-id="${s.id}" value="${esc(s.title || "")}" placeholder="${esc(s.caption.split(",").slice(0, 3).join(","))}">`
         : `<div class="t" data-a="rename" title="Klicken zum Umbenennen">${esc(title)}</div>`
-      }<div class="m">${esc(meta)}</div>${state}</div>
+      }<div class="m" title="IT = Iterationen · VAR = Varianz">${esc(meta)}</div>${state}</div>
       <div class="actions">${actions}</div></div>`;
   }).join("");
+  // Symbolknöpfe: Tooltip auch als Name für Screenreader
+  lib.querySelectorAll("button[title]:not([aria-label]), a[title]:not([aria-label])")
+    .forEach((el) => el.setAttribute("aria-label", el.title));
 }
 function shortErr(msg = "") {
   if (/nicht erreichbar/i.test(msg)) return "Server offline";
@@ -297,7 +304,12 @@ $("#library").addEventListener("keydown", (e) => {
   if (e.key === "Escape") { e.preventDefault(); editingId = null; render(); }
 });
 $("#search").addEventListener("input", () => { clearTimeout(refresh.s); refresh.s = setTimeout(refresh, 250); });
-$("#onlyFav").addEventListener("change", refresh);
+$("#onlyFav").addEventListener("click", (e) => {
+  onlyFav = !onlyFav;
+  e.currentTarget.setAttribute("aria-pressed", onlyFav);
+  e.currentTarget.textContent = onlyFav ? "★" : "☆";
+  refresh();
+});
 
 // ---------------------------------------------------------------- Player
 let ws = null;
@@ -324,6 +336,10 @@ async function play(s) {
   if (!played.has(s.id)) { markPlayed(s.id); render(); }
   currentId = s.id;
   $("#player").hidden = false;
+  if (!play.ro) {   // Höhe des Players ändert sich, sobald die Wellenform geladen ist
+    play.ro = new ResizeObserver(() => document.documentElement.style.setProperty("--player-h", $("#player").offsetHeight + "px"));
+    play.ro.observe($("#player"));
+  }
   $("#pTitle").textContent = s.title || s.caption;
   $("#pTitle").title = `Seed ${s.seed}` + (s.result_meta?.keyscale ? ` · ${s.result_meta.keyscale}` : "");
   await ws.load(s.url);

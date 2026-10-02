@@ -80,7 +80,8 @@
 
       <details id="lyricsBox" title="Leer lassen: Das Modell schreibt eigene Lyrics. Die Sprache der Vocals ergibt sich aus dem Text (Deutsch oder Englisch).">
         <summary><span>Lyrics <span id="lyricsHint" class="sumhint"></span></span>
-          <button type="button" id="lyricsDice" class="dice" disabled title="Zufällige Lyrics vom Modell schreiben lassen (braucht einen Prompt)" aria-label="Zufällige Lyrics vom Modell schreiben lassen"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor"/></svg></button>
+          <span class="dice-wrap"><span id="diceNote" class="dice-note">erst Prompt eingeben</span>
+          <button type="button" id="lyricsDice" class="dice" disabled title="Zufällige Lyrics vom Modell schreiben lassen (braucht einen Prompt)" aria-label="Zufällige Lyrics vom Modell schreiben lassen"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor"/></svg></button></span>
         </summary>
         <textarea name="lyrics" rows="7" placeholder="[verse]&#10;…&#10;&#10;[chorus]&#10;…"></textarea>
         <div class="chips" id="sectionChips"></div>
@@ -135,13 +136,15 @@
         </div>
       </details>
 
-      <div class="field"><span class="lbl" title="Anzahl Varianten desselben Prompts, jede mit eigenem Seed">Varianten</span>
-        <div class="genrow">
-          <div class="slider" data-fmt="int">
-            <div class="fill"></div><div class="knob"><span></span></div>
-            <input name="variants" type="range" min="1" max="10" step="1" value="2" aria-label="Varianten">
+      <div class="genbar">
+        <div class="field" style="margin-bottom:0"><span class="lbl" title="Anzahl Versionen desselben Prompts, jede mit eigenem Seed. In der Bibliothek heißen sie A, B, C …">Versionen</span>
+          <div class="genrow">
+            <div class="slider" data-fmt="int">
+              <div class="fill"></div><div class="knob"><span></span></div>
+              <input name="variants" type="range" min="1" max="10" step="1" value="2" aria-label="Versionen">
+            </div>
+            <button type="submit" id="genBtn" class="aktion big">2× GENERIEREN</button>
           </div>
-          <button type="submit" class="aktion big">GENERIEREN</button>
         </div>
       </div>
     </form>
@@ -151,7 +154,7 @@
     <div class="libhead">
       <h2 class="col-title">Bibliothek</h2>
       <input id="search" type="search" placeholder="Suchen">
-      <label class="check" title="Nur Favoriten zeigen"><input type="checkbox" id="onlyFav"> ★</label>
+      <button type="button" id="onlyFav" class="sek icon" aria-pressed="false" title="Nur Favoriten zeigen" aria-label="Nur Favoriten zeigen">☆</button>
     </div>
     <div id="library"></div>
   </section>
