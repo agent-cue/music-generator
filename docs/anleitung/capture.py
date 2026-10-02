@@ -45,7 +45,7 @@ PAGE_JS = r"""
     card,
     logo: R(q('.logo-wrap')), titleDice: R(q('#titleDice')), promptDice: R(q('#diceBtn')),
     stil: T(lbl('stil')), laenge: T(lbl('länge')), bpm: T(lbl('bpm')),
-    lyrics: T(q('#lyricsBox summary > span')), erweitert: T(q('details:not(#lyricsBox) summary')),
+    lyrics: T(q('#lyricsBox summary > span')), erweitert: T([...document.querySelectorAll('summary')].find(e => e.textContent.trim().toLowerCase().startsWith('erweitert'))),
     gen: R(q('#genBtn')), gear: R(q('#btnSettings')),
     row: song ? R(song) : null,
     rowParts: song ? ['.round', '[data-a=fav]', '.download', '[data-a=more]', '[data-a=reuse]', '[data-a=del]'].map(s => R(song.querySelector(s))) : null,

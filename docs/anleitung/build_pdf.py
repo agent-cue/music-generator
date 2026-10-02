@@ -466,13 +466,13 @@ def page_app(c):
         ("Logo", "Geheimes Upload-Feld: Song darauf ziehen oder klicken. Die App analysiert ihn und füllt Prompt, Tempo und Länge aus."),
         ("Titel", "Nur zum Wiederfinden. Der Würfel schlägt einen Namen vor."),
         ("Prompt", "Deine Idee: Stimmung, Szene, Klang. Der Würfel würfelt eine Idee."),
-        ("Stil", "Genre und Instrumente. Die Karten darunter hängen Begriffe an."),
+        ("Stil", "Genre und Instrumente. Würfel: Vorschlag. Unter „Stile“ hängen Karten Begriffe an."),
         ("Länge", "10 Sekunden bis 5 Minuten, Standard 1:30."),
         ("BPM", "Tempo. Ganz links = Auto, das Modell wählt."),
-        ("Lyrics", "Eingeklappt = instrumental. Würfel (braucht einen Prompt): das Modell schreibt eigene Texte."),
+        ("Lyrics", "Eingeklappt = instrumental. Würfel: „Automatisch“, das Modell schreibt beim Generieren eigene Texte. Aufgeklappt: Sprache und eigene Lyrics."),
         ("Erweitert", "Iterationen (Qualität), Varianz (Abwechslung), Tonart, Takt, Seed."),
         ("Generieren", "Unten die Zahl der Versionen (1 bis 10) wählen und los. Mehrere heißen dann A, B, C … Die Leiste bleibt beim Scrollen sichtbar."),
-        ("Zahnrad", "Einstellungen und Verbindungstest zum Modellserver."),
+        ("Zahnrad", "Verbindungstest, Anordnung (untereinander oder nebeneinander) und „Nach Updates suchen“."),
     ]
     lx = ix + iw_pt + 18
     lw = W - M - lx
