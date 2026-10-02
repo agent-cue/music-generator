@@ -61,9 +61,10 @@ body {
   color: var(--muted); font-weight: 600; line-height: 1; }
 .title span:first-child { font-size: calc(var(--h) * .524); letter-spacing: .123em; }
 .title span:last-child { font-size: calc(var(--h) * .298); letter-spacing: .065em; }
-.top-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.top-right { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.top-right .gear { order: 1; } .top-right .langsw { order: 2; } .top-right #status { order: 3; }
 @media (max-width: 900px) { .top { --h: 64px; gap: 12px; } }
-@media (max-width: 700px) { .top { --h: 48px; gap: 10px; flex-wrap: wrap; } .top-right { margin-left: 0; width: 100%; justify-content: space-between; } }
+@media (max-width: 700px) { .top { --h: 48px; gap: 10px; flex-wrap: wrap; } }
 
 .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px; min-width: 0; }
 .col-title { margin: 0; font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }

@@ -428,13 +428,14 @@ async function updCheck() {
 $("#updCheck").onclick = updCheck;
 updApply.onclick = async () => {
   updApply.disabled = true; updInfo.className = "small"; updInfo.textContent = t("upd_loading");
+  let res;
   try {
-    await api("/api/update/apply", { method: "POST" });
+    res = await api("/api/update/apply", { method: "POST" });
   } catch (e) { updInfo.className = "small err-t"; updInfo.textContent = e.message; updApply.disabled = false; return; }
   updInfo.textContent = t("upd_restart");
   for (let i = 0; i < 60; i++) {   // warten, bis der neue Server antwortet
     await new Promise(r => setTimeout(r, 1000));
-    try { const h = await fetch("/api/queue", { cache: "no-store" }); if (h.ok && i > 1) return location.reload(); } catch {}
+    try { const h = await fetch("/api/queue", { cache: "no-store" }); if (h.ok && i > 1) { if (res.needs_install) { updInfo.textContent = t("upd_restart_install"); return; } return location.reload(); } } catch {}
   }
   updInfo.className = "small err-t"; updInfo.textContent = t("upd_slow");
 };

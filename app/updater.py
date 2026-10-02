@@ -12,6 +12,7 @@ from . import db
 
 ROOT = Path(__file__).resolve().parent.parent
 BRANCH = "main"
+REPO_URL = "https://github.com/agent-cue/music-generator.git"
 router = APIRouter(prefix="/api/update")
 
 
@@ -29,8 +30,13 @@ def git(*args: str, timeout: int = 60) -> str:
 
 def _status(lang: str = "de") -> dict:
     if not (ROOT / ".git").exists():
-        raise RuntimeError(tr(lang, "Dies ist keine Git-Installation. Updates gehen nur, wenn die App per git clone installiert wurde.",
-                             "This is not a Git installation. Updates only work if the app was installed with git clone."))
+        # Ohne Git installiert (z. B. als ZIP geladen): Version unbekannt, das Update stellt auf Git um
+        latest = git("ls-remote", REPO_URL, BRANCH, timeout=30).split()
+        if not latest:
+            raise RuntimeError(tr(lang, "GitHub ist nicht erreichbar (Internetverbindung?).", "GitHub is not reachable (internet connection?)."))
+        return {"current": "?", "latest": latest[0][:7], "behind": 1, "ahead": 0, "dirty": False, "needs_install": False, "nogit": True,
+                "changes": [tr(lang, "Neue Fassung von GitHub. Die Installation wird dabei auf Git-Updates umgestellt.",
+                               "Latest version from GitHub. The installation is switched to Git updates.")]}
     git("fetch", "--quiet", "origin", BRANCH, timeout=30)
     remote = f"origin/{BRANCH}"
     behind = int(git("rev-list", "--count", f"HEAD..{remote}"))
@@ -71,11 +77,31 @@ def _apply(lang: str = "de") -> dict:
         raise RuntimeError(tr(lang, "Im Programmordner gibt es eigene Änderungen an Dateien. Das Update würde sie überschreiben.", "There are local changes to files in the program folder. The update would overwrite them."))
     if s["ahead"]:
         raise RuntimeError(tr(lang, "Diese Installation hat eigene Commits, die nicht auf GitHub sind. Automatisch geht das nicht.", "This installation has its own commits that are not on GitHub. Not possible automatically."))
+    if s.get("nogit"):
+        return _apply_nogit(s)
     before = git("rev-parse", "HEAD")
     git("pull", "--ff-only", "--quiet", "origin", BRANCH, timeout=120)
     if {"pyproject.toml", "uv.lock"} & set(git("diff", "--name-only", before, "HEAD").splitlines()):
         subprocess.run(["uv", "sync", "--quiet"], cwd=ROOT, check=True, timeout=300)
     return {**s, "current": git("rev-parse", "--short", "HEAD")}
+
+
+def _apply_nogit(s: dict) -> dict:
+    """Ordner ohne .git in ein Git-Repository verwandeln und auf den neuesten Stand bringen.
+    data/, engine/ und .venv sind in .gitignore und bleiben unberührt."""
+    def acestep_rev() -> str:
+        try:
+            return next(l for l in (ROOT / "scripts" / "common.sh").read_text().splitlines() if l.startswith("ACESTEP_REV="))
+        except (OSError, StopIteration):
+            return ""
+    old_rev = acestep_rev()
+    git("init", "-q", "-b", BRANCH)
+    git("remote", "add", "origin", REPO_URL)
+    git("fetch", "--quiet", "origin", BRANCH, timeout=120)
+    git("reset", "--hard", "--quiet", f"origin/{BRANCH}")
+    git("branch", "--set-upstream-to", f"origin/{BRANCH}", BRANCH)
+    subprocess.run(["uv", "sync", "--quiet"], cwd=ROOT, check=True, timeout=300)
+    return {**s, "current": git("rev-parse", "--short", "HEAD"), "needs_install": acestep_rev() != old_rev}
 
 
 @router.post("/apply")

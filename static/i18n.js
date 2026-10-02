@@ -49,6 +49,7 @@ const I18N = {
     upd_new: (n, a, b) => `${n} ${n > 1 ? "neue Updates" : "neues Update"} (${a} → ${b})`,
     upd_dirty: " · eigene Dateiänderungen, automatisch nicht möglich", upd_install: " · danach bitte einmal Install starten",
     upd_loading: "Lade herunter …", upd_restart: "Installiert, App startet neu …",
+    upd_restart_install: "Aktualisiert. Bitte einmal Install starten (neue Modellversion), dann diese Seite neu laden.",
     upd_slow: "Neustart dauert ungewöhnlich lang. Bitte Music Generator ON starten.",
   },
   en: {
@@ -95,6 +96,7 @@ const I18N = {
     upd_new: (n, a, b) => `${n} new ${n > 1 ? "updates" : "update"} (${a} → ${b})`,
     upd_dirty: " · local file changes, automatic update not possible", upd_install: " · then run Install once",
     upd_loading: "Downloading …", upd_restart: "Installed, app is restarting …",
+    upd_restart_install: "Updated. Please run Install once (new model version), then reload this page.",
     upd_slow: "Restart is taking unusually long. Please start Music Generator ON.",
   },
 };
