@@ -35,6 +35,8 @@ Optionen: `--yes` (keine Rückfragen), `--lm 0.6B|1.7B|4B`, `--no-start`.
 
 ## Aktualisieren
 
+In der App: Zahnrad › **Nach Updates suchen** › **Jetzt aktualisieren** (holt die neue Fassung von GitHub und startet die App neu; ändert sich acestep.cpp, weist sie auf den Installer hin). Oder von Hand:
+
 ```bash
 cd ~/MusicGenerator && git pull
 open Install.command
