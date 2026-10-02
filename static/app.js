@@ -120,7 +120,7 @@ const lyricsDice = $("#lyricsDice");
 lyricsDice.addEventListener("click", (e) => {
   e.preventDefault(); e.stopPropagation();   // <summary> soll dabei nicht auf-/zuklappen
   form.instrumental.checked = false; lyricsStash = ""; form.lyrics.value = "";
-  syncLyrics(); $("#lyricsBox").open = true;
+  syncLyrics();
   rollAnim(e.currentTarget);
 });
 form.instrumental.addEventListener("change", () => { syncLyrics(); if (!form.instrumental.checked) $("#lyricsBox").open = true; });
