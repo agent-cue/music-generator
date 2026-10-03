@@ -486,7 +486,7 @@ def page_app(c):
 
 # ═════════════════════════════════════════════════════════════════ Seite 6: Bibliothek + Hilfe
 def page_help(c):
-    y = header(c, "Bibliothek, Updates, Hilfe", "Wenn der erste Song fertig ist")
+    y = header(c, "Bibliothek, Ordner, Updates", "Wenn der erste Song fertig ist")
     y = h2(c, "Ein Song in der Bibliothek", y)
     rk = json.loads((HERE / "marks.json").read_text())["row"]
     iw_pt = W - 2 * M
@@ -501,8 +501,11 @@ def page_help(c):
         badge(c, n, ix + px * sc, iy + ih_pt + 8, 7.5)
     y = iy - 16
     items = [("Play", "abspielen, mit Wellenform unten"), ("Stern", "als Favorit markieren"),
-             ("WAV", "herunterladen, 48 kHz, 16 Bit"), ("Plus", "weitere Version mit neuem Seed"),
-             ("Pfeil", "Einstellungen ins Formular übernehmen"), ("Kreuz", "löschen")]
+             ("WAV", "herunterladen, 48 kHz, 16 Bit"), ("TXT", "Lyrics des Modells zeigen (nur bei Gesang)"),
+             ("Ordner", "in einen Ordner verschieben"), ("Plus", "weitere Version mit neuem Seed"),
+             ("Pfeil", "Einstellungen ins Formular übernehmen"), ("Kreuz", "löschen, bei laufendem Song abbrechen")]
+    if not rk.get("txt"):
+        items.pop(3)
     colw = (W - 2 * M) / 3
     st = ParagraphStyle("it", parent=small, fontSize=8.6, leading=11, textColor=INK)
     for i, (t, s) in enumerate(items):
@@ -510,19 +513,36 @@ def page_help(c):
         cy = y - (i // 3) * 26
         badge(c, i + 1, cx + 8, cy - 7, 7.5)
         para(c, f"<b>{t}</b> · {s}", cx + 22, cy, colw - 28, st)
-    y -= 60
+    y -= 26 * ((len(items) + 2) // 3) + 8
     y = para(c, "Titel lassen sich per Klick umbenennen. Die Zeile darunter zeigt "
                 "<b>BPM · IT</b> (Iterationen) <b>· VAR</b> (Varianz) · Tonart · Länge. "
                 "„Erstellt in …“ verschwindet, sobald du den Song zum ersten Mal abspielst.", M, y, W - 2 * M, small)
-    y -= 20
+    y -= 16
+
+    y = h2(c, "Ordner", y)
+    bk = json.loads((HERE / "marks.json").read_text())["bar"]
+    bh = iw_pt * bk["h"] / bk["w"]
+    c.setFillColor(PANEL)
+    c.roundRect(M - 4, y - bh - 12, iw_pt + 8, bh + 8, 6, stroke=0, fill=1)
+    c.drawImage(str(HERE / "folders.png"), M, y - bh - 8, iw_pt, bh)
+    y -= bh + 22
+    y = para(c, "Mit <b>+</b> legst du einen Ordner an. Songs ziehst du auf einen Ordner oder verschiebst sie mit dem "
+                "Ordner-Knopf der Songzeile, jede Version einzeln. Ein Klick auf einen Ordner zeigt nur dessen Songs; "
+                "neue Songs landen im gerade offenen Ordner. <b>Alle laden</b> bzw. <b>Ordner laden</b> lädt die "
+                "fertigen Songs der Ansicht als ZIP. Ordner löschen entfernt nur den Ordner, nicht die Songs.",
+             M, y, W - 2 * M, small)
+    y -= 16
 
     y = h2(c, "Aktualisieren", y)
-    y = para(c, "Neue Version holen und den Installer noch einmal laufen lassen. Deine Songs bleiben erhalten.",
-             M, y, W - 2 * M)
-    y -= 8
-    y = code(c, "cd ~/MusicGenerator && git pull\nopen Install.command", M, y, W - 2 * M)
-    y -= 20
+    y = para(c, "In der App: <b>Zahnrad › Nach Updates suchen › Jetzt aktualisieren</b>. Die App holt die neue Fassung "
+                "von GitHub und startet neu, deine Songs bleiben erhalten. Meldet sie eine neue Modellversion, "
+                "danach einmal <b>Install</b> starten.", M, y, W - 2 * M)
+    footer(c, 6)
 
+
+# ═════════════════════════════════════════════════════════════════ Seite 7: Hilfe
+def page_trouble(c):
+    y = header(c, "Hilfe", "Wenn etwas hakt")
     y = h2(c, "Wenn etwas hakt", y)
     rows = [["Problem", "Lösung"],
             ["„Zu wenig Speicherplatz“", "Platz schaffen (Papierkorb leeren!), dann Install erneut starten. Die Meldung nennt, wie viel nötig ist."],
@@ -536,13 +556,13 @@ def page_help(c):
     para(c, "Music Generator OFF, dann den Ordner <b>MusicGenerator</b> in den Papierkorb legen. "
             "Vorher den Unterordner <b>data/songs</b> sichern, falls du deine Songs behalten willst. "
             "Optional: das Hilfsprogramm uv liegt unter ~/.local/bin.", M, y, W - 2 * M)
-    footer(c, 6)
+    footer(c, 7)
 
 
 c = canvas.Canvas(str(OUT), pagesize=A4)
 c.setTitle("Music Generator – Installationsanleitung")
 c.setAuthor("Alphatester")
-for fn in (page_cover, page_overview, page_steps, page_flow, page_app, page_help):
+for fn in (page_cover, page_overview, page_steps, page_flow, page_app, page_help, page_trouble):
     fn(c)
     c.showPage()
 c.save()

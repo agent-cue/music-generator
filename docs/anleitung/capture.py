@@ -39,7 +39,13 @@ PAGE_JS = r"""
   const R = (el) => { const r = el.getBoundingClientRect(); return {x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height}; };
   const T = (el) => { const g = document.createRange(); g.selectNodeContents(el); return R({getBoundingClientRect: () => g.getBoundingClientRect()}); };
   const lbl = (t) => [...document.querySelectorAll('.lbl')].find(e => e.textContent.trim().toLowerCase().startsWith(t));
-  const song = [...document.querySelectorAll('.song')].find(s => s.querySelector('.download'));
+  // Beispielordner nur für das Foto einblenden (nichts wird gespeichert), damit Ordnerleiste und Ordner-Knopf zu sehen sind
+  dragging = true;   // hält die laufende Aktualisierung davon ab, das Bild wieder zu überschreiben
+  curFolder = '';
+  folders = { folders: [{ id: 'f1', name: 'Triphop', count: 6 }, { id: 'f2', name: 'Filmmusik', count: 3 }], all: folders.all, none: Math.max(0, folders.all - 9) };
+  render(); renderFolders();
+  const done = [...document.querySelectorAll('.song')].filter(s => s.querySelector('.download'));
+  const song = done.find(s => s.querySelector('[data-a=lyrics]')) || done[0];
   const q = (sel) => document.querySelector(sel);
   const card = R(q('.card'));
   return JSON.stringify({
@@ -49,7 +55,9 @@ PAGE_JS = r"""
     lyrics: T(q('#lyricsBox summary > span')), erweitert: T([...document.querySelectorAll('summary')].find(e => e.textContent.trim().toLowerCase().startsWith('erweitert'))),
     gen: R(q('#genBtn')), gear: R(q('#btnSettings')),
     row: song ? R(song) : null,
-    rowParts: song ? ['.round', '[data-a=fav]', '.download', '[data-a=more]', '[data-a=reuse]', '[data-a=del]'].map(s => R(song.querySelector(s))) : null,
+    rowParts: song ? ['.round', '[data-a=fav]', '.download', '[data-a=lyrics]', '[data-a=move]', '[data-a=more]', '[data-a=reuse]', '[data-a=del]'].map(s => song.querySelector(s)).filter(Boolean).map(R) : null,
+    hasTxt: !!(song && song.querySelector('[data-a=lyrics]')),
+    bar: R(q('#folderBar')),
   });
 })()
 """
@@ -137,6 +145,8 @@ def capture(cdp):
         cdp.shot(HERE / "form.png", 0, 0, WIDTH, fh)
         row = d["row"]
         cdp.shot(HERE / "row.png", row["x"], row["y"], row["w"], row["h"])
+        bar = d["bar"]
+        cdp.shot(HERE / "folders.png", bar["x"] - 6, bar["y"] - 6, bar["w"] + 12, bar["h"] + 12)
 
         mid = lambda r: (r["x"] + r["w"] / 2, r["y"] + r["h"] / 2)
         # Nummern neben die Elemente setzen, nicht darauf (CSS-Pixel im Bild)
@@ -154,7 +164,8 @@ def capture(cdp):
         ]
         out = {
             "form": {"w": WIDTH, "h": fh, "marks": [[round(x, 1), round(y, 1)] for x, y in marks]},
-            "row": {"w": row["w"], "h": row["h"],
+            "bar": {"w": bar["w"] + 12, "h": bar["h"] + 12},
+            "row": {"w": row["w"], "h": row["h"], "txt": d["hasTxt"],
                     "xs": [round(mid(p)[0] - row["x"], 1) for p in d["rowParts"]]},
         }
         (HERE / "marks.json").write_text(json.dumps(out, indent=1))
