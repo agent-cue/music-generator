@@ -27,6 +27,7 @@ const SECTIONS = ["[intro]", "[verse]", "[pre-chorus]", "[chorus]", "[bridge]", 
 let songs = [];
 let currentId = null;
 let onlyFav = false;       // Favoriten-Filter der Bibliothek
+const openLyrics = new Set();   // Songs, deren generierte Lyrics gerade aufgeklappt sind
 let editingId = null;   // id des Songs, dessen Titel gerade bearbeitet wird
 
 // Erstellungszeit anzeigen, bis ein Song zum ersten Mal abgespielt wurde (danach dauerhaft ausgeblendet)
@@ -244,9 +245,17 @@ async function refresh() {
     if (!editingId) render();   // während des Umbenennens nicht neu zeichnen, sonst verliert das Feld den Fokus
     const qu = await api("/api/queue");
     busy = qu.running.length || qu.queued;
+    libStats = qu.library; showLibStats();
   } catch {}
   clearTimeout(refresh.t);
   refresh.t = setTimeout(refresh, busy ? 1500 : 8000);
+}
+
+let libStats = null;
+function showLibStats() {
+  if (!libStats) return;
+  const mb = libStats.bytes / 1048576, nf = (v, d) => v.toLocaleString(LANG, { maximumFractionDigits: d });
+  $("#libStats").textContent = libStats.count ? `${libStats.count} Songs · ${mb >= 1024 ? nf(mb / 1024, 1) + " GB" : nf(mb, 0) + " MB"}` : "";
 }
 
 function render() {
@@ -282,13 +291,16 @@ function render() {
     if (s.status === "cancelled") state = `<div class="s">${t("cancelled")}</div>`;
     if (s.status === "error") state = `<div class="s err" title="${esc(s.message)}">${t("error")} · ${esc(shortErr(s.message))}</div>`;
     if (s.status === "done" && !played.has(s.id)) { const tm = genTime(s); if (tm) state = `<div class="s took">${t("created_in")} ${tm}</div>`; }
+    // Vom Modell geschriebener Text (nur bei Songs mit Gesang)
+    const lyr = s.status === "done" && s.lyrics !== "[Instrumental]" && /[^\s\[\]]/.test((m.lyrics || "").replace(/\[[^\]]*\]/g, "")) ? m.lyrics.trim() : "";
     const actions = [
       s.status === "done" && `<button class="sek icon ${s.favorite ? "on" : ""}" data-a="fav" title="${t("fav")}">${s.favorite ? "★" : "☆"}</button>`,
       s.status === "done" && `<a class="download icon fmt" href="${s.url}?download=1" title="${t("download")}">${s.file.endsWith(".wav") ? "WAV" : "MP3"}</a>`,
+      lyr && `<button class="sek icon txt ${openLyrics.has(s.id) ? "on" : ""}" data-a="lyrics" title="${t("show_lyrics")}">TXT</button>`,
       `<button class="sek icon" data-a="more" title="${t("more")}">＋</button>`,
       `<button class="sek icon" data-a="reuse" title="${t("reuse")}"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12 3l7 7h-4v10h-6V10H5l7-7z"/></svg></button>`,
       ["error", "cancelled"].includes(s.status) && `<button class="sek icon" data-a="retry" title="${t("retry")}">↻</button>`,
-      s.status !== "running" && `<button class="sek icon del" data-a="del" title="${s.status === "queued" ? t("cancel") : t("del")}">✕</button>`,
+      `<button class="sek icon del" data-a="del" title="${["queued", "running"].includes(s.status) ? t("cancel") : t("del")}">✕</button>`,
     ].filter(Boolean).join("");
     return `<div class="song ${s.id === currentId ? "playing" : ""}${newGroup ? " new-group" : ""}" data-id="${s.id}">
       ${left}
@@ -296,7 +308,7 @@ function render() {
         ? `<input class="t-edit" data-id="${s.id}" value="${esc(s.title || "")}" placeholder="${esc(s.caption.split(",").slice(0, 3).join(","))}">`
         : `<div class="t" data-a="rename" title="${t("rename")}">${esc(title)}</div>`
       }<div class="m" title="${t("meta_tip")}">${esc(meta)}</div>${state}</div>
-      <div class="actions">${actions}</div></div>`;
+      <div class="actions">${actions}</div>${lyr && openLyrics.has(s.id) ? `<pre class="lyr">${esc(lyr)}</pre>` : ""}</div>`;
   }).join("");
   // Symbolknöpfe: Tooltip auch als Name für Screenreader
   lib.querySelectorAll("button[title]:not([aria-label]), a[title]:not([aria-label])")
@@ -318,13 +330,14 @@ $("#library").addEventListener("click", async (e) => {
   if (a === "rename") { editingId = id; render(); const inp = $(`.t-edit[data-id="${id}"]`); inp?.focus(); inp?.select(); return; }
   if (a === "fav") await api(`/api/songs/${id}`, { method: "PATCH", body: JSON.stringify({ favorite: !s.favorite }) });
   if (a === "reuse") return fillForm(s);
+  if (a === "lyrics") { openLyrics.has(id) ? openLyrics.delete(id) : openLyrics.add(id); return render(); }
   if (a === "retry") await api(`/api/songs/${id}/retry`, { method: "POST" });
   if (a === "more") {
     const p = s.params;
     await api("/api/generate", { method: "POST", body: JSON.stringify({ ...p, instrumental: false, keep_caption: p.use_cot_caption !== true, title: s.title || "", seed: -1, variants: 1, group_id: s.group_id }) });
   }
   if (a === "del") {
-    if (s.status !== "queued" && !confirm(t("del_q"))) return;
+    if (!["queued", "running"].includes(s.status) && !confirm(t("del_q"))) return;
     await api(`/api/songs/${id}`, { method: "DELETE" }).catch((err) => alert(err.message));
   }
   refresh();
@@ -463,7 +476,7 @@ dlg.addEventListener("close", async () => { if (dlg.returnValue === "save") { aw
 // Sprachumschalter (DE | EN)
 document.querySelectorAll("[data-lang]").forEach((b) => b.addEventListener("click", () => setLang(b.dataset.lang)));
 document.addEventListener("langchange", () => {
-  showDur(); syncLyrics(); render(); checkHealth();
+  showDur(); syncLyrics(); render(); showLibStats(); checkHealth();
   updInfo.textContent = ""; updList.hidden = true; updApply.hidden = true;
 });
 

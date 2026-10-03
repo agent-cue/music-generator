@@ -56,6 +56,18 @@ class AceStepCpp:
         self.timeout = timeout_minutes * 60
         # Liegen mehrere Sprachmodelle im Ordner, nähme der Server sonst das erste (alphabetisch)
         self.lm_model = lm_model
+        self._job: tuple[str, str] | None = None   # (Server, Job-ID) des gerade laufenden Auftrags
+
+    async def cancel(self) -> None:
+        """Laufenden Auftrag beim Modellserver abbrechen, damit er nicht weiterrechnet."""
+        if not self._job:
+            return
+        base, job_id = self._job
+        try:
+            async with httpx.AsyncClient(timeout=5) as c:
+                await c.post(f"{base}/job", params={"id": job_id, "cancel": 1})
+        except httpx.HTTPError:
+            pass
 
     async def health(self) -> dict:
         async with httpx.AsyncClient(timeout=5) as c:
@@ -76,6 +88,7 @@ class AceStepCpp:
             return info
 
     async def _wait(self, c: httpx.AsyncClient, base: str, job_id: str, label: str, start: float, progress: Progress) -> httpx.Response:
+        self._job = (base, job_id)
         # start = Zeitpunkt des Gesamtauftrags (nicht dieser Phase) -> die Anzeige zählt einfach durch
         while True:
             r = await c.get(f"{base}/job", params={"id": job_id})
@@ -89,10 +102,7 @@ class AceStepCpp:
                 raise EngineError(f"{label} fehlgeschlagen: {r.text}")
             elapsed = int(time.monotonic() - start)
             if elapsed > self.timeout:
-                try:   # Modellserver nicht am alten Auftrag weiterrechnen lassen
-                    await c.post(f"{base}/job", params={"id": job_id, "cancel": 1})
-                except httpx.HTTPError:
-                    pass
+                await self.cancel()   # Modellserver nicht am alten Auftrag weiterrechnen lassen
                 raise EngineError(f"{label}: Zeitüberschreitung nach {elapsed}s")
             await progress(_fmt_time(elapsed))
             await asyncio.sleep(self.poll)
@@ -182,6 +192,9 @@ class MockEngine:
 
     async def health(self) -> dict:
         return {"ok": True, "health": {"status": "mock"}}
+
+    async def cancel(self) -> None:
+        pass
 
     async def analyze(self, audio: bytes, filename: str) -> dict:
         return {"caption": "warm analog synths, mock analysis", "lyrics": "[Instrumental]", "bpm": 92, "keyscale": "C major", "timesignature": "4", "vocal_language": "", "duration": 45}

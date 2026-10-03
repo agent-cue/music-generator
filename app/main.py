@@ -20,6 +20,7 @@ from .engines import EngineError, make_engine
 
 STATIC = db.ROOT / "static"
 _wakeup = asyncio.Event()
+_running: dict = {}   # laufender Auftrag: {"sid", "task", "engine"} – zum Abbrechen
 
 
 def now() -> str:
@@ -45,7 +46,17 @@ async def worker():
 
         try:
             params = json.loads(job["params"])
-            audio, ext, meta = await engine.generate(params, progress)
+            gen = asyncio.create_task(engine.generate(params, progress))
+            _running.update(sid=sid, task=gen, engine=engine)
+            try:
+                audio, ext, meta = await gen
+            except asyncio.CancelledError:
+                if not gen.cancelled() or asyncio.current_task().cancelling():
+                    raise                   # die App selbst wird beendet
+                await engine.cancel()       # vom Nutzer abgebrochen (Status steht schon auf "cancelled")
+                continue
+            finally:
+                _running.clear()
             fname = f"{sid}.{ext}"
             (db.SONGS_DIR / fname).write_bytes(audio)
             if db.one("SELECT status FROM songs WHERE id=?", (sid,))["status"] == "running":
@@ -190,7 +201,7 @@ async def retry_song(sid: str):
 
 
 @app.delete("/api/songs/{sid}")
-def delete_song(sid: str):
+async def delete_song(sid: str):
     r = db.one("SELECT * FROM songs WHERE id=?", (sid,))
     if not r:
         raise HTTPException(404)
@@ -198,7 +209,10 @@ def delete_song(sid: str):
         db.execute("UPDATE songs SET status='cancelled' WHERE id=?", (sid,))
         return {"cancelled": True}
     if r["status"] == "running":
-        raise HTTPException(409, "Läuft gerade – bitte warten, bis der Job fertig ist.")
+        db.execute("UPDATE songs SET status='cancelled', message=NULL, finished_at=? WHERE id=?", (now(), sid))
+        if _running.get("sid") == sid:
+            _running["task"].cancel()
+        return {"cancelled": True}
     if r["file"]:
         (db.SONGS_DIR / r["file"]).unlink(missing_ok=True)
     db.execute("DELETE FROM songs WHERE id=?", (sid,))
@@ -222,7 +236,9 @@ def song_audio(sid: str, download: bool = False):
 @app.get("/api/queue")
 def queue():
     rows = db.query("SELECT id, status, message, caption FROM songs WHERE status IN ('queued','running') ORDER BY created_at, rowid")
-    return {"running": [r for r in rows if r["status"] == "running"], "queued": len([r for r in rows if r["status"] == "queued"])}
+    files = [f.stat().st_size for f in db.SONGS_DIR.iterdir() if f.is_file()]
+    return {"running": [r for r in rows if r["status"] == "running"], "queued": len([r for r in rows if r["status"] == "queued"]),
+            "library": {"count": len(files), "bytes": sum(files)}}
 
 
 @app.get("/api/settings")

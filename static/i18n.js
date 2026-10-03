@@ -41,7 +41,7 @@ const I18N = {
     // Bibliothek
     empty: "Noch leer", waiting: "Wartet", cancelled: "Abgebrochen", created_in: "Erstellt in",
     fav: "Favorit", download: "Download", more: "Weitere Variante (neuer Seed)", reuse: "Einstellungen ins Formular übernehmen",
-    retry: "Erneut versuchen", del: "Löschen", del_q: "Song löschen?", rename: "Klicken zum Umbenennen",
+    show_lyrics: "Lyrics des Modells zeigen", retry: "Erneut versuchen", del: "Löschen", del_q: "Song löschen?", rename: "Klicken zum Umbenennen",
     meta_tip: "IT = Iterationen · VAR = Varianz",
     err_offline: "Server offline", err_codes: "Keine Codes", err_timeout: "Timeout", err_details: "Details im Tooltip",
     // Updates
@@ -89,7 +89,7 @@ const I18N = {
     analyzing: (n) => `Analyzing “${n}” …`, analyzed: (n) => `“${n}” analyzed — style applied.`, error: "Error",
     empty: "Nothing yet", waiting: "Waiting", cancelled: "Cancelled", created_in: "Created in",
     fav: "Favorite", download: "Download", more: "Another variant (new seed)", reuse: "Copy settings to the form",
-    retry: "Retry", del: "Delete", del_q: "Delete song?", rename: "Click to rename",
+    show_lyrics: "Show the lyrics the model wrote", retry: "Retry", del: "Delete", del_q: "Delete song?", rename: "Click to rename",
     meta_tip: "IT = iterations · VAR = variance",
     err_offline: "Server offline", err_codes: "No codes", err_timeout: "Timeout", err_details: "Details in tooltip",
     upd_search: "Searching …", upd_current: (v) => `Up to date (${v})`,

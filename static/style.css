@@ -184,7 +184,8 @@ button { font: inherit; cursor: pointer; }
 
 /* Bibliothek */
 .libhead { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
-.libhead .col-title { margin-right: auto; }
+.libhead .libtitle { margin-right: auto; display: flex; align-items: baseline; min-width: 0; }
+.libhead .libtitle .sumhint { white-space: nowrap; }
 .libhead input[type=search] { max-width: 260px; }
 .song { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 10px; border: 1px solid transparent; border-radius: 8px; }
 .song + .song { border-top-color: var(--border); border-radius: 0; }
@@ -266,3 +267,15 @@ dialog .col-title { margin-bottom: 16px; }
   padding: 5px 8px; cursor: pointer; }
 .langsw button:hover { color: var(--text); }
 .langsw button[aria-pressed=true] { color: var(--accent2); background: var(--gold-tint); }
+
+/* Generierte Lyrics unter der Songzeile */
+.song .lyr { grid-column: 1 / -1; margin: 2px 0 4px; padding: 10px 12px; max-height: 260px; overflow: auto; white-space: pre-wrap;
+  font: inherit; font-size: 12px; line-height: 1.5; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
+.song .actions .txt { font-size: 10px; font-weight: 600; letter-spacing: .06em; }
+.song .actions .txt.on { color: var(--accent2); border-color: var(--accent2); }
+
+/* Nebeneinander: Generator bleibt stehen, die Bibliothek scrollt */
+@media (min-width: 1000px) {
+  .wrap.side > section:first-of-type { position: sticky; top: 16px; max-height: calc(100vh - 32px - var(--player-h, 0px)); overflow-y: auto; }
+  .wrap.side .genbar { bottom: -18px; }
+}
