@@ -44,6 +44,11 @@ const I18N = {
     show_lyrics: "Lyrics des Modells zeigen", retry: "Erneut versuchen", del: "Löschen", del_q: "Song löschen?", rename: "Klicken zum Umbenennen",
     meta_tip: "IT = Iterationen · VAR = Varianz",
     err_offline: "Server offline", err_codes: "Keine Codes", err_timeout: "Timeout", err_details: "Details im Tooltip",
+    // Ordner
+    f_all: "Alle", f_none: "Unsortiert", f_new: "Neuer Ordner", f_rename: "Umbenennen", f_delete: "Ordner löschen",
+    f_zip: "Ordner laden", f_zip_all: "Alle laden", f_zip_tip: "Alle fertigen Songs dieser Ansicht als ZIP herunterladen",
+    f_name_q: "Name des Ordners:", f_delete_q: (n) => `Ordner „${n}“ löschen? Die Songs bleiben erhalten und werden unsortiert.`,
+    move: "In Ordner verschieben",
     // Updates
     upd_search: "Suche …", upd_current: (v) => `Aktuell (${v})`,
     upd_new: (n, a, b) => `${n} ${n > 1 ? "neue Updates" : "neues Update"} (${a} → ${b})`,
@@ -92,6 +97,10 @@ const I18N = {
     show_lyrics: "Show the lyrics the model wrote", retry: "Retry", del: "Delete", del_q: "Delete song?", rename: "Click to rename",
     meta_tip: "IT = iterations · VAR = variance",
     err_offline: "Server offline", err_codes: "No codes", err_timeout: "Timeout", err_details: "Details in tooltip",
+    f_all: "All", f_none: "Unsorted", f_new: "New folder", f_rename: "Rename", f_delete: "Delete folder",
+    f_zip: "Download folder", f_zip_all: "Download all", f_zip_tip: "Download all finished songs of this view as a ZIP",
+    f_name_q: "Folder name:", f_delete_q: (n) => `Delete folder “${n}”? The songs are kept and become unsorted.`,
+    move: "Move to folder",
     upd_search: "Searching …", upd_current: (v) => `Up to date (${v})`,
     upd_new: (n, a, b) => `${n} new ${n > 1 ? "updates" : "update"} (${a} → ${b})`,
     upd_dirty: " · local file changes, automatic update not possible", upd_install: " · then run Install once",

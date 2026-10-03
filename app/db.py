@@ -72,8 +72,12 @@ def init():
             CREATE INDEX IF NOT EXISTS idx_songs_status ON songs(status);
             CREATE INDEX IF NOT EXISTS idx_songs_group ON songs(group_id);
             CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS folders (id TEXT PRIMARY KEY, name TEXT NOT NULL, created_at TEXT NOT NULL);
             """
         )
+        # Ordner der Bibliothek (nur in der App; die Dateien bleiben, wo sie sind). NULL = unsortiert
+        if "folder_id" not in [r["name"] for r in _con.execute("PRAGMA table_info(songs)")]:
+            _con.execute("ALTER TABLE songs ADD COLUMN folder_id TEXT")
         # Nach einem Absturz hängengebliebene Jobs wieder einreihen
         _con.execute("UPDATE songs SET status='queued', message=NULL WHERE status='running'")
         _con.commit()

@@ -5,7 +5,9 @@ import random
 import re
 import subprocess
 import sys
+import tempfile
 import uuid
+import zipfile
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
@@ -14,6 +16,7 @@ from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from starlette.background import BackgroundTask
 
 from . import db, updater
 from .engines import EngineError, make_engine
@@ -74,6 +77,8 @@ async def worker():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db.init()
+    for old in db.DATA.glob("mg-*.zip"):   # Reste abgebrochener Downloads
+        old.unlink(missing_ok=True)
     if sys.platform == "darwin":   # Symbole der Start-Dateien erneuern (Git/ZIP setzen sie zurück)
         subprocess.Popen(["bash", str(Path(__file__).resolve().parent.parent / "scripts" / "symbole.sh")],
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -116,14 +121,38 @@ class GenerateRequest(BaseModel):
     inference_steps: int = 0
     lm_temperature: float | None = None
     group_id: str | None = None    # für "weitere Variante" einer bestehenden Gruppe
+    folder_id: str | None = None   # Ordner der Bibliothek, in dem die neuen Songs landen
 
 
 class SongPatch(BaseModel):
     favorite: bool | None = None
     title: str | None = None
+    folder_id: str | None = None   # None/"" = unsortiert (nur ausgewertet, wenn mitgeschickt)
 
 
-def song_out(r: dict) -> dict:
+class FolderIn(BaseModel):
+    name: str
+
+
+def letters() -> dict:
+    """Versionen desselben Prompts heißen in Entstehungsreihenfolge A, B, C … (über alle Ordner hinweg)."""
+    groups: dict = {}
+    for r in db.query("SELECT id, group_id FROM songs ORDER BY created_at, rowid"):
+        groups.setdefault(r["group_id"], []).append(r["id"])
+    return {sid: chr(65 + i) for ids in groups.values() if len(ids) > 1 for i, sid in enumerate(ids) if i < 26}
+
+
+def folder_where(folder: str) -> tuple[str, list]:
+    """Filter der Bibliothek: "" = alle, "none" = unsortiert, sonst Ordner-ID."""
+    if folder == "none":
+        return " AND folder_id IS NULL", []
+    if folder:
+        return " AND folder_id=?", [folder]
+    return "", []
+
+
+def song_out(r: dict, letter: dict | None = None) -> dict:
+    r["letter"] = (letter or {}).get(r["id"], "")
     r["params"] = json.loads(r["params"])
     r["result_meta"] = json.loads(r["result_meta"]) if r["result_meta"] else None
     r["favorite"] = bool(r["favorite"])
@@ -141,10 +170,11 @@ async def generate(req: GenerateRequest):
     caption = ", ".join(parts) if parts else req.caption.strip()
     if not caption:
         raise HTTPException(422, "Prompt oder Stil fehlt")
-    base = req.model_dump(exclude={"variants", "group_id", "instrumental", "title", "keep_caption"})
+    base = req.model_dump(exclude={"variants", "group_id", "folder_id", "instrumental", "title", "keep_caption"})
     base["caption"] = caption
     base["use_cot_caption"] = not req.keep_caption
     base["lyrics"] = lyrics
+    folder = req.folder_id if req.folder_id and db.one("SELECT id FROM folders WHERE id=?", (req.folder_id,)) else None
     ids = []
     for i in range(req.variants):
         # Erste Variante nimmt den festen Seed, weitere zählen hoch -> alles reproduzierbar
@@ -152,9 +182,9 @@ async def generate(req: GenerateRequest):
         params = {**base, "seed": seed}
         sid = uuid.uuid4().hex[:12]
         db.execute(
-            "INSERT INTO songs(id, group_id, created_at, status, title, caption, lyrics, seed, params) "
-            "VALUES(?,?,?,?,?,?,?,?,?)",
-            (sid, group, now(), "queued", req.title.strip() or None, caption, lyrics, seed, json.dumps(params)),
+            "INSERT INTO songs(id, group_id, created_at, status, title, caption, lyrics, seed, params, folder_id) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?)",
+            (sid, group, now(), "queued", req.title.strip() or None, caption, lyrics, seed, json.dumps(params), folder),
         )
         ids.append(sid)
     _wakeup.set()
@@ -162,7 +192,7 @@ async def generate(req: GenerateRequest):
 
 
 @app.get("/api/songs")
-def list_songs(q: str = "", favorites: bool = False, group: str = ""):
+def list_songs(q: str = "", favorites: bool = False, group: str = "", folder: str = ""):
     sql, args = "SELECT * FROM songs WHERE 1=1", []
     if q:
         sql += " AND (caption LIKE ? OR lyrics LIKE ? OR title LIKE ?)"
@@ -172,8 +202,10 @@ def list_songs(q: str = "", favorites: bool = False, group: str = ""):
     if group:
         sql += " AND group_id=?"
         args.append(group)
-    sql += " ORDER BY created_at DESC, rowid DESC LIMIT 500"
-    return [song_out(r) for r in db.query(sql, tuple(args))]
+    fw, fa = folder_where(folder)
+    sql += fw + " ORDER BY created_at DESC, rowid DESC LIMIT 500"
+    lt = letters()
+    return [song_out(r, lt) for r in db.query(sql, tuple(args + fa))]
 
 
 @app.get("/api/songs/{sid}")
@@ -190,6 +222,8 @@ def patch_song(sid: str, p: SongPatch):
         db.execute("UPDATE songs SET favorite=? WHERE id=?", (int(p.favorite), sid))
     if p.title is not None:
         db.execute("UPDATE songs SET title=? WHERE id=?", (p.title.strip() or None, sid))
+    if "folder_id" in p.model_fields_set:
+        db.execute("UPDATE songs SET folder_id=? WHERE id=?", (p.folder_id or None, sid))
     return get_song(sid)
 
 
@@ -231,6 +265,73 @@ def song_audio(sid: str, download: bool = False):
         base = re.sub(r"[^\w\- ]+", "", base).strip().replace(" ", "_") or "song"
         name = f"{base}_{r['seed']}{path.suffix}"
     return FileResponse(path, filename=name)
+
+
+# ---------------------------------------------------------------- Ordner
+
+@app.get("/api/folders")
+def list_folders():
+    counts = {r["folder_id"]: r["n"] for r in db.query("SELECT folder_id, COUNT(*) AS n FROM songs GROUP BY folder_id")}
+    folders = db.query("SELECT id, name FROM folders ORDER BY name COLLATE NOCASE")
+    known = {f["id"] for f in folders}
+    for f in folders:
+        f["count"] = counts.get(f["id"], 0)
+    # Songs, deren Ordner es nicht mehr gibt, zählen als unsortiert
+    return {"folders": folders, "all": sum(counts.values()), "none": sum(n for k, n in counts.items() if k not in known)}
+
+
+@app.post("/api/folders")
+def create_folder(f: FolderIn):
+    name = f.name.strip()[:60]
+    if not name:
+        raise HTTPException(422, "Name fehlt")
+    fid = uuid.uuid4().hex[:12]
+    db.execute("INSERT INTO folders(id, name, created_at) VALUES(?,?,?)", (fid, name, now()))
+    return {"id": fid, "name": name}
+
+
+@app.patch("/api/folders/{fid}")
+def rename_folder(fid: str, f: FolderIn):
+    name = f.name.strip()[:60]
+    if not name:
+        raise HTTPException(422, "Name fehlt")
+    db.execute("UPDATE folders SET name=? WHERE id=?", (name, fid))
+    return {"id": fid, "name": name}
+
+
+@app.delete("/api/folders/{fid}")
+def delete_folder(fid: str):
+    """Löscht nur den Ordner; seine Songs werden wieder unsortiert."""
+    db.execute("UPDATE songs SET folder_id=NULL WHERE folder_id=?", (fid,))
+    db.execute("DELETE FROM folders WHERE id=?", (fid,))
+    return {"deleted": True}
+
+
+@app.get("/api/download")
+def download_zip(folder: str = ""):
+    """Alle fertigen Songs der Ansicht (alle / unsortiert / ein Ordner) als ZIP mit lesbaren Dateinamen."""
+    fw, fa = folder_where(folder)
+    rows = db.query("SELECT * FROM songs WHERE status='done' AND file IS NOT NULL" + fw + " ORDER BY created_at, rowid", tuple(fa))
+    rows = [r for r in rows if (db.SONGS_DIR / r["file"]).is_file()]
+    if not rows:
+        raise HTTPException(404, "Keine fertigen Songs in dieser Ansicht.")
+    clean = lambda s: re.sub(r"[^\w\- ]+", "", s).strip()   # noqa: E731
+    f = db.one("SELECT name FROM folders WHERE id=?", (folder,)) if folder not in ("", "none") else None
+    zip_name = clean(f["name"] if f else "Music Generator") or "Music Generator"
+    lt, used = letters(), set()
+    tmp = tempfile.NamedTemporaryFile(prefix="mg-", suffix=".zip", dir=db.DATA, delete=False)
+    with zipfile.ZipFile(tmp, "w", zipfile.ZIP_STORED) as z:   # WAV lässt sich kaum packen -> nur bündeln
+        for r in rows:
+            path = db.SONGS_DIR / r["file"]
+            base = " ".join(x for x in (clean(r["title"] or r["caption"][:40]) or "Song", lt.get(r["id"], "")) if x)
+            name = f"{base}{path.suffix}"
+            if name.lower() in used:
+                name = f"{base} {r['seed']}{path.suffix}"
+            used.add(name.lower())
+            z.write(path, f"{zip_name}/{name}")
+    tmp.close()
+    return FileResponse(tmp.name, filename=f"{zip_name}.zip", media_type="application/zip",
+                        background=BackgroundTask(Path(tmp.name).unlink, missing_ok=True))
 
 
 @app.get("/api/queue")

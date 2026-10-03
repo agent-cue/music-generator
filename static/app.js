@@ -28,6 +28,10 @@ let songs = [];
 let currentId = null;
 let onlyFav = false;       // Favoriten-Filter der Bibliothek
 const openLyrics = new Set();   // Songs, deren generierte Lyrics gerade aufgeklappt sind
+let folders = { folders: [], all: 0, none: 0 };
+let curFolder = "";      // "" = alle, "none" = unsortiert, sonst Ordner-ID
+try { curFolder = localStorage.getItem("folder") || ""; } catch {}
+let dragging = false;    // während des Ziehens nicht neu zeichnen
 let editingId = null;   // id des Songs, dessen Titel gerade bearbeitet wird
 
 // Erstellungszeit anzeigen, bis ein Song zum ersten Mal abgespielt wurde (danach dauerhaft ausgeblendet)
@@ -132,6 +136,7 @@ function readForm() {
   const d = Object.fromEntries(new FormData(form));
   const num = (k, def) => (d[k] === "" || d[k] == null ? def : Number(d[k]));
   return {
+    folder_id: curFolder && curFolder !== "none" ? curFolder : null,
     title: d.title || "", prompt: d.prompt || "", style: d.style || "", lyrics: form.instrumental.checked ? "" : d.lyrics || "", instrumental: form.instrumental.checked, keep_caption: form.keep_caption.checked,
     duration: Number(form.duration.value), bpm: Number(form.bpm.value) <= Number(form.bpm.min) ? 0 : Number(form.bpm.value), keyscale: d.keyscale || "", timesignature: d.timesignature || "", vocal_language: form.instrumental.checked ? "" : d.vocal_language || "en",
     seed: num("seed", -1), variants: num("variants", 1),
@@ -240,9 +245,12 @@ dz.addEventListener("drop", (e) => { e.preventDefault(); dz.classList.remove("dr
 async function refresh() {
   let busy = true;   // bei einem Fehler (Server startet gerade neu) zügig erneut versuchen
   try {
-    const q = new URLSearchParams({ q: $("#search").value, favorites: onlyFav });
+    folders = await api("/api/folders");
+    if (curFolder && curFolder !== "none" && !folders.folders.some((f) => f.id === curFolder)) setFolder("", false);
+    if (!dragging) renderFolders();
+    const q = new URLSearchParams({ q: $("#search").value, favorites: onlyFav, folder: curFolder });
     songs = await api("/api/songs?" + q);
-    if (!editingId) render();   // während des Umbenennens nicht neu zeichnen, sonst verliert das Feld den Fokus
+    if (!editingId && !dragging) render();   // während des Umbenennens nicht neu zeichnen, sonst verliert das Feld den Fokus
     const qu = await api("/api/queue");
     busy = qu.running.length || qu.queued;
     libStats = qu.library; showLibStats();
@@ -261,19 +269,10 @@ function showLibStats() {
 function render() {
   const lib = $("#library");
   if (!songs.length) { lib.innerHTML = `<div class="empty">${t("empty")}</div>`; return; }
-  // Varianten desselben Prompts in Entstehungsreihenfolge mit A, B, C … kennzeichnen
-  const groups = {};
-  songs.forEach((s) => (groups[s.group_id] ??= []).push(s));
-  const letter = {};
-  Object.values(groups).forEach((arr) => {
-    if (arr.length < 2) return;
-    [...arr].reverse().forEach((s, i) => (letter[s.id] = String.fromCharCode(65 + i)));
-  });
-
   lib.innerHTML = songs.map((s, i) => {
     const m = s.result_meta || {}, p = s.params || {};
     const newGroup = i > 0 && songs[i - 1].group_id !== s.group_id;
-    const title = (s.title || s.caption.split(",").slice(0, 3).join(",")) + (letter[s.id] ? ` ${letter[s.id]}` : "");
+    const title = (s.title || s.caption.split(",").slice(0, 3).join(",")) + (s.letter ? ` ${s.letter}` : "");
     const meta = [
       m.bpm && `${m.bpm}BPM`,
       p.inference_steps ? `${p.inference_steps}IT` : null,
@@ -297,12 +296,13 @@ function render() {
       s.status === "done" && `<button class="sek icon ${s.favorite ? "on" : ""}" data-a="fav" title="${t("fav")}">${s.favorite ? "★" : "☆"}</button>`,
       s.status === "done" && `<a class="download icon fmt" href="${s.url}?download=1" title="${t("download")}">${s.file.endsWith(".wav") ? "WAV" : "MP3"}</a>`,
       lyr && `<button class="sek icon txt ${openLyrics.has(s.id) ? "on" : ""}" data-a="lyrics" title="${t("show_lyrics")}">TXT</button>`,
+      folders.folders.length > 0 && `<button class="sek icon" data-a="move" title="${t("move")}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></button>`,
       `<button class="sek icon" data-a="more" title="${t("more")}">＋</button>`,
       `<button class="sek icon" data-a="reuse" title="${t("reuse")}"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12 3l7 7h-4v10h-6V10H5l7-7z"/></svg></button>`,
       ["error", "cancelled"].includes(s.status) && `<button class="sek icon" data-a="retry" title="${t("retry")}">↻</button>`,
       `<button class="sek icon del" data-a="del" title="${["queued", "running"].includes(s.status) ? t("cancel") : t("del")}">✕</button>`,
     ].filter(Boolean).join("");
-    return `<div class="song ${s.id === currentId ? "playing" : ""}${newGroup ? " new-group" : ""}" data-id="${s.id}">
+    return `<div class="song ${s.id === currentId ? "playing" : ""}${newGroup ? " new-group" : ""}" data-id="${s.id}" draggable="${folders.folders.length > 0 && s.id !== editingId}">
       ${left}
       <div style="min-width:0">${s.id === editingId
         ? `<input class="t-edit" data-id="${s.id}" value="${esc(s.title || "")}" placeholder="${esc(s.caption.split(",").slice(0, 3).join(","))}">`
@@ -330,11 +330,12 @@ $("#library").addEventListener("click", async (e) => {
   if (a === "rename") { editingId = id; render(); const inp = $(`.t-edit[data-id="${id}"]`); inp?.focus(); inp?.select(); return; }
   if (a === "fav") await api(`/api/songs/${id}`, { method: "PATCH", body: JSON.stringify({ favorite: !s.favorite }) });
   if (a === "reuse") return fillForm(s);
+  if (a === "move") return moveMenu(btn, id);
   if (a === "lyrics") { openLyrics.has(id) ? openLyrics.delete(id) : openLyrics.add(id); return render(); }
   if (a === "retry") await api(`/api/songs/${id}/retry`, { method: "POST" });
   if (a === "more") {
     const p = s.params;
-    await api("/api/generate", { method: "POST", body: JSON.stringify({ ...p, instrumental: false, keep_caption: p.use_cot_caption !== true, title: s.title || "", seed: -1, variants: 1, group_id: s.group_id }) });
+    await api("/api/generate", { method: "POST", body: JSON.stringify({ ...p, instrumental: false, keep_caption: p.use_cot_caption !== true, title: s.title || "", seed: -1, variants: 1, group_id: s.group_id, folder_id: s.folder_id }) });
   }
   if (a === "del") {
     if (!["queued", "running"].includes(s.status) && !confirm(t("del_q"))) return;
@@ -342,6 +343,84 @@ $("#library").addEventListener("click", async (e) => {
   }
   refresh();
 });
+// ---------------------------------------------------------------- Ordner
+function setFolder(id, reload = true) {
+  curFolder = id;
+  try { localStorage.setItem("folder", id); } catch {}
+  if (reload) refresh();
+}
+function renderFolders() {
+  const chip = (id, name, n) => `<span class="chip fold${id === curFolder ? " on" : ""}" data-f="${id}" title="${esc(name)}">${esc(name)} <b>${n}</b></span>`;
+  const cur = folders.folders.find((f) => f.id === curFolder);
+  $("#folderBar").innerHTML =
+    chip("", t("f_all"), folders.all) +
+    (folders.folders.length ? chip("none", t("f_none"), folders.none) : "") +
+    folders.folders.map((f) => chip(f.id, f.name, f.count)).join("") +
+    `<button type="button" class="chip add" data-fa="new" title="${t("f_new")}" aria-label="${t("f_new")}">＋</button>` +
+    `<span class="fold-actions">` +
+    (cur ? `<button type="button" class="sek mini" data-fa="rename">${t("f_rename")}</button><button type="button" class="sek mini" data-fa="delete">${t("f_delete")}</button>` : "") +
+    `<a class="download mini" data-fa="zip" href="/api/download?folder=${encodeURIComponent(curFolder)}" title="${t("f_zip_tip")}">${cur ? t("f_zip") : t("f_zip_all")}</a></span>`;
+}
+async function moveSong(id, folderId) {
+  await api(`/api/songs/${id}`, { method: "PATCH", body: JSON.stringify({ folder_id: folderId === "none" ? null : folderId }) }).catch((e) => alert(e.message));
+  refresh();
+}
+$("#folderBar").addEventListener("click", async (e) => {
+  const c = e.target.closest("[data-f]");
+  if (c) return setFolder(c.dataset.f);
+  const a = e.target.closest("[data-fa]")?.dataset.fa;
+  const cur = folders.folders.find((f) => f.id === curFolder);
+  try {
+    if (a === "new") {
+      const name = prompt(t("f_name_q"));
+      if (name?.trim()) setFolder((await api("/api/folders", { method: "POST", body: JSON.stringify({ name }) })).id);
+    } else if (a === "rename" && cur) {
+      const name = prompt(t("f_name_q"), cur.name);
+      if (name?.trim()) { await api(`/api/folders/${cur.id}`, { method: "PATCH", body: JSON.stringify({ name }) }); refresh(); }
+    } else if (a === "delete" && cur) {
+      if (confirm(t("f_delete_q", cur.name))) { await api(`/api/folders/${cur.id}`, { method: "DELETE" }); setFolder(""); }
+    } else if (a === "zip" && !songs.some((s) => s.status === "done")) { e.preventDefault(); }
+  } catch (err) { alert(t("error") + ": " + err.message); }
+});
+// Song auf einen Ordner ziehen
+// (Text in den Lyrics soll markierbar bleiben, Knöpfe sollen klicken statt ziehen)
+$("#library").addEventListener("mousedown", (e) => {
+  const row = e.target.closest(".song");
+  if (row) row.draggable = folders.folders.length > 0 && !e.target.closest(".lyr, .t-edit, button, a");
+});
+$("#library").addEventListener("dragstart", (e) => {
+  const row = e.target.closest?.(".song");
+  if (!row) return;
+  dragging = true;
+  e.dataTransfer.setData("text/song", row.dataset.id);
+  e.dataTransfer.effectAllowed = "move";
+});
+document.addEventListener("dragend", () => { dragging = false; document.querySelectorAll(".chip.drop").forEach((c) => c.classList.remove("drop")); });
+const dropChip = (e) => (e.dataTransfer.types.includes("text/song") ? e.target.closest?.(".chip.fold:not([data-f=''])") : null);
+$("#folderBar").addEventListener("dragover", (e) => { const c = dropChip(e); if (c) { e.preventDefault(); c.classList.add("drop"); } });
+$("#folderBar").addEventListener("dragleave", (e) => e.target.closest?.(".chip")?.classList.remove("drop"));
+$("#folderBar").addEventListener("drop", (e) => {
+  const c = dropChip(e);
+  if (!c) return;
+  e.preventDefault(); dragging = false;
+  moveSong(e.dataTransfer.getData("text/song"), c.dataset.f);
+});
+// Ordner-Knopf in der Songzeile: kleines Menü mit allen Ordnern
+function moveMenu(btn, id) {
+  document.querySelector(".movemenu")?.remove();
+  const s = songs.find((x) => x.id === id), m = document.createElement("div");
+  m.className = "movemenu";
+  m.innerHTML = [["none", t("f_none")], ...folders.folders.map((f) => [f.id, f.name])]
+    .map(([fid, name]) => `<button type="button" data-f="${fid}" class="${(s.folder_id || "none") === fid ? "on" : ""}">${esc(name)}</button>`).join("");
+  document.body.append(m);
+  const r = btn.getBoundingClientRect();
+  m.style.top = `${Math.min(r.bottom + 4, innerHeight - m.offsetHeight - 8)}px`;
+  m.style.left = `${Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8))}px`;
+  m.addEventListener("click", (e) => { const b = e.target.closest("[data-f]"); if (b) { m.remove(); moveSong(id, b.dataset.f); } });
+  setTimeout(() => document.addEventListener("click", function close(e) { if (!m.contains(e.target)) { m.remove(); document.removeEventListener("click", close); } }), 0);
+}
+window.addEventListener("scroll", () => document.querySelector(".movemenu")?.remove(), true);
+
 async function commitRename(inp) {
   const id = inp.dataset.id;
   if (editingId !== id) return;   // per Escape schon abgebrochen
@@ -476,7 +555,7 @@ dlg.addEventListener("close", async () => { if (dlg.returnValue === "save") { aw
 // Sprachumschalter (DE | EN)
 document.querySelectorAll("[data-lang]").forEach((b) => b.addEventListener("click", () => setLang(b.dataset.lang)));
 document.addEventListener("langchange", () => {
-  showDur(); syncLyrics(); render(); showLibStats(); checkHealth();
+  showDur(); syncLyrics(); render(); renderFolders(); showLibStats(); checkHealth();
   updInfo.textContent = ""; updList.hidden = true; updApply.hidden = true;
 });
 
