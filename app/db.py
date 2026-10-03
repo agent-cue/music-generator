@@ -99,12 +99,20 @@ def get_settings() -> dict:
     s = dict(DEFAULT_SETTINGS)
     for r in query("SELECT key, value FROM settings"):
         s[r["key"]] = json.loads(r["value"])
+    # Früher gespeicherte Standardadresse des CPU-Servers: im Ein-Server-Modus läuft dort nichts
+    if _conf.get("MODE") == "single" and s["lm_url"].rstrip("/") == "http://127.0.0.1:8086":
+        s["lm_url"] = ""
     return s
 
 
 def save_settings(values: dict) -> dict:
     for k, v in values.items():
-        if k in DEFAULT_SETTINGS:
+        if k not in DEFAULT_SETTINGS:
+            continue
+        if v == DEFAULT_SETTINGS[k]:
+            # Vorgaben nicht festschreiben, sonst überstimmen sie später den Installer (engine.conf)
+            execute("DELETE FROM settings WHERE key=?", (k,))
+        else:
             execute(
                 "INSERT INTO settings(key, value) VALUES(?, ?) "
                 "ON CONFLICT(key) DO UPDATE SET value=excluded.value",

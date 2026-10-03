@@ -28,8 +28,19 @@ def git(*args: str, timeout: int = 60) -> str:
     return r.stdout.strip()
 
 
-def _status(lang: str = "de") -> dict:
+def _has_head() -> bool:
+    """Git-Ordner mit mindestens einem Commit? (Falsch auch nach einer abgebrochenen Umstellung auf Git.)"""
     if not (ROOT / ".git").exists():
+        return False
+    try:
+        git("rev-parse", "--verify", "--quiet", "HEAD")
+        return True
+    except RuntimeError:
+        return False
+
+
+def _status(lang: str = "de") -> dict:
+    if not _has_head():
         # Ohne Git installiert (z. B. als ZIP geladen): Version unbekannt, das Update stellt auf Git um
         latest = git("ls-remote", REPO_URL, BRANCH, timeout=30).split()
         if not latest:
@@ -95,10 +106,12 @@ def _apply_nogit(s: dict) -> dict:
         except (OSError, StopIteration):
             return ""
     old_rev = acestep_rev()
-    git("init", "-q", "-b", BRANCH)
-    git("remote", "add", "origin", REPO_URL)
+    if not (ROOT / ".git").exists():
+        git("init", "-q", "-b", BRANCH)
+    if "origin" not in git("remote").split():
+        git("remote", "add", "origin", REPO_URL)
     git("fetch", "--quiet", "origin", BRANCH, timeout=120)
-    git("reset", "--hard", "--quiet", f"origin/{BRANCH}")
+    git("checkout", "--quiet", "-B", BRANCH, f"origin/{BRANCH}", "--force")
     git("branch", "--set-upstream-to", f"origin/{BRANCH}", BRANCH)
     subprocess.run(["uv", "sync", "--quiet"], cwd=ROOT, check=True, timeout=300)
     return {**s, "current": git("rev-parse", "--short", "HEAD"), "needs_install": acestep_rev() != old_rev}

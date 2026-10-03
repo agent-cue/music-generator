@@ -123,7 +123,7 @@ def song_out(r: dict) -> dict:
 # ---------------------------------------------------------------- API
 
 @app.post("/api/generate")
-def generate(req: GenerateRequest):
+async def generate(req: GenerateRequest):
     group = req.group_id or uuid.uuid4().hex[:12]
     lyrics = "[Instrumental]" if req.instrumental else req.lyrics.strip()
     parts = [p.strip().strip(",") for p in (req.style, req.prompt) if p.strip()]
@@ -183,7 +183,7 @@ def patch_song(sid: str, p: SongPatch):
 
 
 @app.post("/api/songs/{sid}/retry")
-def retry_song(sid: str):
+async def retry_song(sid: str):
     db.execute("UPDATE songs SET status='queued', message=NULL WHERE id=? AND status IN ('error','cancelled')", (sid,))
     _wakeup.set()
     return get_song(sid)

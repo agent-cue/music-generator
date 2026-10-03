@@ -89,6 +89,10 @@ class AceStepCpp:
                 raise EngineError(f"{label} fehlgeschlagen: {r.text}")
             elapsed = int(time.monotonic() - start)
             if elapsed > self.timeout:
+                try:   # Modellserver nicht am alten Auftrag weiterrechnen lassen
+                    await c.post(f"{base}/job", params={"id": job_id, "cancel": 1})
+                except httpx.HTTPError:
+                    pass
                 raise EngineError(f"{label}: Zeitüberschreitung nach {elapsed}s")
             await progress(_fmt_time(elapsed))
             await asyncio.sleep(self.poll)

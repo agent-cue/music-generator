@@ -141,11 +141,25 @@ function readForm() {
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   if (!form.prompt.value.trim() && !form.style.value.trim()) { form.prompt.focus(); return; }
+  const btn = $("#genBtn");
+  if (btn.disabled) return;
+  btn.disabled = true;
   try {
     await api("/api/generate", { method: "POST", body: JSON.stringify(readForm()) });
     refresh();
   } catch (err) { alert(t("error") + ": " + err.message); }
+  setTimeout(() => { btn.disabled = false; }, 600);
 });
+form.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.tagName === "INPUT") e.preventDefault(); });
+
+// Auswahlfeld setzen; unbekannte Werte werden ergänzt (Tonart aus der Analyse) oder fallen auf Auto zurück
+function setSelect(sel, val, add = false) {
+  val = val || "";
+  if (![...sel.options].some((o) => o.value === val)) {
+    if (add) sel.add(new Option(val, val)); else val = "";
+  }
+  sel.value = val;
+}
 
 function fillForm(s) {
   const p = s.params;
@@ -161,12 +175,12 @@ function fillForm(s) {
   form.inference_steps.value = p.inference_steps || 50;
   form.lm_temperature.value = p.lm_temperature ?? 0.85;   // ältere Songs liefen mit der Modell-Vorgabe
   showDur();
-  for (const k of ["keyscale", "timesignature"])
-    form[k].value = p[k] || "";
+  setSelect(form.keyscale, p.keyscale, true);
+  setSelect(form.timesignature, p.timesignature);
   form.vocal_language.value = p.vocal_language || "en";
   form.seed.value = p.seed;
   form.variants.value = 1; showDur();
-  form.querySelector("details").open = true;
+  $("#advBox").open = true;
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -206,8 +220,8 @@ async function analyzeFile(file) {
     if (r.bpm) { form.bpm.value = r.bpm; }
     if (r.duration) form.duration.value = Math.min(+form.duration.max, Math.max(+form.duration.min, Math.round(r.duration / 5) * 5));
     showDur();
-    form.keyscale.value = r.keyscale || "";
-    form.timesignature.value = r.timesignature || "";
+    setSelect(form.keyscale, r.keyscale, true);
+    setSelect(form.timesignature, String(r.timesignature || ""));
     dzState("ok", t("analyzed", file.name));
     window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (err) {
@@ -223,11 +237,14 @@ dz.addEventListener("drop", (e) => { e.preventDefault(); dz.classList.remove("dr
 
 // ---------------------------------------------------------------- Bibliothek
 async function refresh() {
-  const q = new URLSearchParams({ q: $("#search").value, favorites: onlyFav });
-  songs = await api("/api/songs?" + q);
-  if (!editingId) render();   // während des Umbenennens nicht neu zeichnen, sonst verliert das Feld den Fokus
-  const qu = await api("/api/queue");
-  const busy = qu.running.length || qu.queued;
+  let busy = true;   // bei einem Fehler (Server startet gerade neu) zügig erneut versuchen
+  try {
+    const q = new URLSearchParams({ q: $("#search").value, favorites: onlyFav });
+    songs = await api("/api/songs?" + q);
+    if (!editingId) render();   // während des Umbenennens nicht neu zeichnen, sonst verliert das Feld den Fokus
+    const qu = await api("/api/queue");
+    busy = qu.running.length || qu.queued;
+  } catch {}
   clearTimeout(refresh.t);
   refresh.t = setTimeout(refresh, busy ? 1500 : 8000);
 }

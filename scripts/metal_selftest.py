@@ -55,7 +55,8 @@ try:
     bpm = float(data.get("bpm") or 0)
 except (TypeError, ValueError):
     bpm = 0
-planned = 40 <= bpm <= 220 and bool(data.get("keyscale"))           # Phase 1
+# Phase 1: nur prüfen, dass überhaupt geplant wurde. Das 0.6B-Modell wählt auch mal 37 BPM, das ist kein Metal-Fehler.
+planned = bpm > 0 and bool(data.get("keyscale"))
 coded = 0.6 * expected <= len(codes) <= 1.4 * expected and unique_ratio > 0.3   # Phase 2
 ok = planned and coded
 print(f"Selbsttest: Planung {'ok' if planned else 'fehlerhaft'} (BPM {data.get('bpm')}, {data.get('keyscale') or 'keine Tonart'}), "
